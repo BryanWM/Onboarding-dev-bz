@@ -36,3 +36,6 @@ dist-ssr
 *.sw?
 .~lock.*#
 RELATORIOS/
+
+# Metadado do Windows ao baixar/copiar arquivos (WSL)
+*Zone.Identifier

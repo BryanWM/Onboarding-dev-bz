@@ -1,12 +1,13 @@
 # CLAUDE.md — WRMax Onboarding (Central do Cliente + Painel Admin)
 
-Contexto para quem (humano ou Claude) for continuar o desenvolvimento. Leia também o `AGENTS.md`.
+Contexto para quem (humano ou Claude) for continuar o desenvolvimento.
 
 > Levantamento feito em 07/10/2026. Onde houver dúvida, confirme no código — este arquivo pode ficar desatualizado.
 
 ## Regras antes de qualquer coisa
 
-- **Projeto conectado ao Lovable.** Commits na branch conectada sincronizam com o editor do Lovable. **Nunca** force-push, rebase, amend ou squash de commits já enviados. Mantenha a branch sempre num estado que funciona.
+- A `main` faz deploy automático na Vercel: mantenha-a sempre num estado que funciona e não reescreva histórico já enviado (force-push, rebase, amend).
+- O projeto nasceu no Lovable e foi desvinculado dele em 07/10/2026; não reintroduza pacotes/arquivos `@lovable.dev/*`.
 - **Este é o repositório oficial.** O repo `BryanWM/Dashboard-admin-panel` é uma cópia quase idêntica (mesma `src/lib`, mesmos componentes, mesmas migrations) com o admin na raiz `/`. Ele é legado: não desenvolva lá.
 - Responda e escreva commits/comentários em **português**.
 - Não rode migrations nem altere o banco de produção sem confirmação explícita do usuário.
@@ -52,7 +53,7 @@ Componentes **sem uso no app** (só referenciados por testes) — tratar como le
 - Supabase: Postgres + Auth + Storage. Cliente em `src/lib/supabase-client.ts`, tipos em `src/types/database.types.ts`.
 - Tailwind v4 + shadcn/Radix (`src/components/ui/`), Lucide.
 - Vitest + Testing Library + JSDOM.
-- Config Vite vem de `@lovable.dev/vite-tanstack-config` — **não** adicione plugins que ele já inclui (ver comentário em `vite.config.ts`).
+- `vite.config.ts` declara os plugins direto: Tailwind, tsconfig-paths, TanStack Start (entrada `src/server.ts`), Nitro (só no build, preset `vercel`) e React.
 
 ## Comandos
 
@@ -115,7 +116,7 @@ Os três usam o mesmo Supabase. Último deploy de todos: 28/09/2026. Confirmar c
 ### 1. Segurança do Supabase — corrigido no código, falta aplicar em produção
 Corrigido em `supabase/migrations/20261007_seguranca_rls_storage.sql` + front (anon fechado, `gestores`/`is_gestor()`, buckets privados com URL assinada, RPCs do cliente validadas por token, contrato sem URL do navegador). A migration foi testada em Postgres local (PGlite) com os papéis anon / logado comum / gestor. **Pendências manuais:**
 - Rodar a migration no Supabase de produção e conferir `SELECT * FROM public.gestores` (ela inclui todos os usuários já existentes do Auth).
-- Cadastrar `SUPABASE_SERVICE_ROLE_KEY` na Vercel (`formulario-onboarding`) e no Lovable **antes** do deploy.
+- Cadastrar `SUPABASE_SERVICE_ROLE_KEY` na Vercel (`formulario-onboarding`) **antes** do deploy.
 - Desligar cadastro público no Supabase Auth (Authentication → Sign In / Providers → "Allow new users to sign up").
 - Os projetos Vercel legados do dashboard separado usam a assinatura antiga de `emitir_e_enviar_contrato` e URLs públicas: param de funcionar para essas ações.
 
@@ -129,8 +130,6 @@ Mocks (`MOCK_CLIENTES`, `tok_padrao`, `mock-*`) só existem no modo demo (`isMod
 O link é montado com `window.location.origin` (`client-row.tsx`, `workspace-link-panel.tsx`, `project-service.ts`), com um ajuste que troca a porta 8081 por 8080 só em localhost. Se o gestor usa o painel em outro domínio, o cliente recebe link desse domínio. Trocar por variável de ambiente (ex.: `VITE_PUBLIC_URL=https://onboarding.wrmaxmarketing.com.br`).
 
 ### 5. Limpeza
-- Arquivos `*:Zone.Identifier` (lixo de download do Windows) commitados — remover e adicionar ao `.gitignore`.
-- Modelos de contrato duplicados em `modelo_de_contratos/` e `public/modelo_de_contratos/`.
 - README e docs desatualizados (4 slots, `mailto`, Cloudflare, Google Forms "estático").
 
 ## Ordem sugerida de trabalho
@@ -139,6 +138,6 @@ O link é montado com `window.location.origin` (`client-row.tsx`, `workspace-lin
 2. Levar checklist/etapas do playbook para o banco.
 3. `VITE_PUBLIC_URL` para os links.
 4. Consolidar deploy num único projeto Vercel; aposentar o repo/projetos do dashboard separado.
-5. Limpeza (Zone.Identifier, código morto, docs) e zerar erros de TypeScript aos poucos.
+5. Limpeza (código morto, docs) e zerar erros de TypeScript aos poucos.
 
 Trabalhe em PRs pequenos, um tema por vez, rodando `npm test` e `npm run build` antes de cada push.
