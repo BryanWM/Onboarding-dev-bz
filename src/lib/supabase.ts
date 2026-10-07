@@ -1,9 +1,14 @@
-import { supabase, isSupabaseConfigured } from "./supabase-client";
+import { supabase, isSupabaseConfigured, isModoDemo } from "./supabase-client";
+import { prepararUploadCliente, type TipoUploadCliente } from "./arquivos-cliente";
+import { extensaoSegura, montarRefStorage } from "./storage-refs";
+import { mensagemDeErro } from "./erros";
 
-export { isSupabaseConfigured, supabase } from "./supabase-client";
+export { mensagemDeErro } from "./erros";
+export { isSupabaseConfigured, isModoDemo, supabase } from "./supabase-client";
 export { emitirEEnviarContrato, listarModelosContrato, criarModeloContrato } from "./contract-service";
 export {
   validarLinkToken,
+  MOTIVO_FALHA_CONEXAO,
   type ValidacaoTokenResultado,
 } from "./token-validation-service";
 export {
@@ -13,254 +18,266 @@ export {
   excluirProjeto,
 } from "./project-service";
 
+// Sem Supabase so o modo demo (dev local) segue em frente; em producao falha.
+function exigirSupabaseOuDemo(): boolean {
+  if (isSupabaseConfigured) return true;
+  if (isModoDemo) return false;
+  throw new Error("SUPABASE_NAO_CONFIGURADO");
+}
+
+function emitirEvento(nome: string, detail: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new CustomEvent(nome, { detail }));
+  } catch {}
+}
+
+function lerJsonLocal<T>(chave: string, padrao: T): T {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(chave) : null;
+    return raw ? (JSON.parse(raw) as T) : padrao;
+  } catch {
+    return padrao;
+  }
+}
+
+function gravarJsonLocal(chave: string, valor: unknown) {
+  try {
+    if (typeof window !== "undefined") localStorage.setItem(chave, JSON.stringify(valor));
+  } catch {}
+}
+
+// ------------------------------------------------------------------------------
+// Cliente (link /c/:token) - tudo validado pelo token no banco/servidor
+// ------------------------------------------------------------------------------
+
 export async function submeterCadastroCliente(token: string, dados: Record<string, any>) {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(`wrmax_cadastro_${token}`, JSON.stringify(dados));
-      window.dispatchEvent(
-        new CustomEvent("wrmax:cadastro_submetido", { detail: { token, dados } })
-      );
-    } catch {}
+  if (exigirSupabaseOuDemo()) {
+    const { data, error } = await supabase.rpc("submeter_cadastro_cliente", {
+      p_token: token,
+      p_dados: dados,
+    });
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível enviar o cadastro. Tente novamente."));
+    const res = data as { sucesso?: boolean; erro?: string } | null;
+    if (!res?.sucesso) throw new Error(mensagemDeErro(res?.erro, "Não foi possível enviar o cadastro. Tente novamente."));
+    emitirEvento("wrmax:cadastro_submetido", { token, dados });
+    return res;
   }
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase.rpc("submeter_cadastro_cliente", {
-        p_token: token,
-        p_dados: dados,
-      });
-      if (error) throw error;
-      return data;
-    } catch (err) {
-      console.warn("RPC submeter_cadastro_cliente com fallback defensivo:", err);
-    }
-  }
-
+  gravarJsonLocal(`wrmax_cadastro_${token}`, dados);
+  emitirEvento("wrmax:cadastro_submetido", { token, dados });
   return { sucesso: true, dados };
 }
 
-export async function enviarComprovantePix(identificador: string, file: File) {
-  const info = {
-    nome: file.name,
-    data: new Date().toISOString(),
-    tamanho: file.size,
-    url: URL.createObjectURL(file),
-  };
-
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(`wrmax_comprovante_pix_${identificador}`, JSON.stringify(info));
-      window.dispatchEvent(
-        new CustomEvent("wrmax:comprovante_pix_enviado", { detail: { identificador, info } })
-      );
-    } catch {}
-  }
-
-  return { sucesso: true, info };
+async function enviarArquivoCliente(token: string, tipo: TipoUploadCliente, file: File) {
+  const prep = await prepararUploadCliente({
+    data: { token, tipo, nomeArquivo: file.name, tamanho: file.size },
+  });
+  const { error } = await supabase.storage
+    .from(prep.bucket)
+    .uploadToSignedUrl(prep.caminho, prep.tokenUpload, file, file.type ? { contentType: file.type } : {});
+  if (error) throw new Error("Falha no envio do arquivo. Tente novamente.");
+  return prep.caminho;
 }
 
-export function obterComprovantePix(identificador?: string | null) {
-  if (typeof window === "undefined" || !identificador) return null;
-  try {
-    const item = localStorage.getItem(`wrmax_comprovante_pix_${identificador}`);
-    if (item) return JSON.parse(item);
-  } catch {}
-  return null;
+export async function enviarComprovantePix(token: string, file: File, clienteIdDemo?: string) {
+  const info = { nome: file.name, data: new Date().toISOString(), tamanho: file.size };
+
+  if (exigirSupabaseOuDemo()) {
+    try {
+      const caminho = await enviarArquivoCliente(token, "comprovante_pix", file);
+      const { data, error } = await supabase.rpc("registrar_comprovante_pix", {
+        p_token: token,
+        p_path: caminho,
+        p_nome: file.name,
+      });
+      const res = data as { sucesso?: boolean; erro?: string } | null;
+      if (error || !res?.sucesso) throw new Error(res?.erro || error?.message || "");
+    } catch (err) {
+      throw new Error(mensagemDeErro(err, "Não foi possível enviar o comprovante. Tente novamente."));
+    }
+    emitirEvento("wrmax:comprovante_pix_enviado", { identificador: token, info });
+    return { sucesso: true, info };
+  }
+
+  const id = clienteIdDemo || token;
+  const infoDemo = { ...info, url: URL.createObjectURL(file) };
+  gravarJsonLocal(`wrmax_comprovante_pix_${id}`, infoDemo);
+  emitirEvento("wrmax:comprovante_pix_enviado", { identificador: id, info: infoDemo });
+  return { sucesso: true, info: infoDemo };
 }
 
 export async function enviarContratoAssinado(
-  identificador: string,
+  token: string,
   file: File,
-  ids?: { clienteId?: string; contratoId?: string; token?: string }
+  idsDemo?: { clienteId?: string | undefined; contratoId?: string | undefined }
 ) {
-  let fileUrl = "";
-  try {
-    fileUrl = await new Promise<string>((resolve) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result as string);
-      r.onerror = () => resolve(URL.createObjectURL(file));
-      r.readAsDataURL(file);
-    });
-  } catch {
-    fileUrl = URL.createObjectURL(file);
-  }
+  const info = { nome: file.name, data: new Date().toISOString(), tamanho: file.size };
 
-  const cliId = ids?.clienteId || (identificador.startsWith("cli-") ? identificador : null);
-
-  if (isSupabaseConfigured) {
+  if (exigirSupabaseOuDemo()) {
     try {
-      const ext = file.name.split(".").pop();
-      const fileName = `contrato_assinado_${cliId || identificador}_${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("contratos-assinados").upload(fileName, file, { upsert: true });
-      if (!upErr) {
-        const { data: pubData } = supabase.storage.from("contratos-assinados").getPublicUrl(fileName);
-        if (pubData?.publicUrl) fileUrl = pubData.publicUrl;
-      }
-      if (cliId) {
-        await supabase.from("contratos").update({ docx_assinado_storage_path: fileUrl, status_envio: "assinado", assinado_em: new Date().toISOString() }).eq("cliente_id", cliId);
-        await supabase.from("clientes_onboarding").update({ status: "assinado" }).eq("id", cliId);
-      }
+      const caminho = await enviarArquivoCliente(token, "contrato_assinado", file);
+      const { data, error } = await supabase.rpc("registrar_contrato_assinado", {
+        p_token: token,
+        p_path: caminho,
+        p_nome: file.name,
+      });
+      const res = data as { sucesso?: boolean; erro?: string } | null;
+      if (error || !res?.sucesso) throw new Error(res?.erro || error?.message || "");
     } catch (err) {
-      console.warn("Supabase upload/update de contrato assinado:", err);
+      throw new Error(mensagemDeErro(err, "Não foi possível enviar o contrato assinado. Tente novamente."));
     }
+    emitirEvento("wrmax:contrato_assinado_enviado", { identificador: token, clienteId: idsDemo?.clienteId, info });
+    return { sucesso: true, info };
   }
 
-  const info = { nome: file.name, data: new Date().toISOString(), tamanho: file.size, url: fileUrl };
-
-  if (typeof window !== "undefined") {
-    try {
-      const allIds = Array.from(new Set([identificador, ids?.clienteId, ids?.contratoId, ids?.token].filter(Boolean))) as string[];
-      allIds.forEach((id) => localStorage.setItem(`wrmax_contrato_assinado_${id}`, JSON.stringify(info)));
-      if (cliId) {
-        const editadosRaw = localStorage.getItem("wrmax_clientes_editados");
-        const editados = editadosRaw ? JSON.parse(editadosRaw) : {};
-        editados[cliId] = { ...(editados[cliId] || {}), status: "assinado", contrato_assinado: info };
-        localStorage.setItem("wrmax_clientes_editados", JSON.stringify(editados));
-      }
-      window.dispatchEvent(new CustomEvent("wrmax:contrato_assinado_enviado", { detail: { identificador, clienteId: ids?.clienteId, info } }));
-    } catch {}
+  const infoDemo = { ...info, url: URL.createObjectURL(file) };
+  const ids = Array.from(new Set([token, idsDemo?.clienteId, idsDemo?.contratoId].filter(Boolean))) as string[];
+  ids.forEach((id) => gravarJsonLocal(`wrmax_contrato_assinado_${id}`, infoDemo));
+  if (idsDemo?.clienteId) {
+    const editados = lerJsonLocal<Record<string, any>>("wrmax_clientes_editados", {});
+    editados[idsDemo.clienteId] = { ...(editados[idsDemo.clienteId] || {}), status: "assinado", contrato_assinado: infoDemo };
+    gravarJsonLocal("wrmax_clientes_editados", editados);
   }
-  return { sucesso: true, info };
+  emitirEvento("wrmax:contrato_assinado_enviado", { identificador: token, clienteId: idsDemo?.clienteId, info: infoDemo });
+  return { sucesso: true, info: infoDemo };
+}
+
+// Leitura do localStorage: so tem efeito no modo demo.
+export function obterComprovantePix(identificador?: string | null) {
+  if (!isModoDemo || !identificador) return null;
+  return lerJsonLocal<any>(`wrmax_comprovante_pix_${identificador}`, null);
 }
 
 export function obterContratoAssinado(identificador?: string | null) {
-  if (typeof window === "undefined" || !identificador) return null;
-  try {
-    const item = localStorage.getItem(`wrmax_contrato_assinado_${identificador}`);
-    if (item) return JSON.parse(item);
-    const editadosRaw = localStorage.getItem("wrmax_clientes_editados");
-    if (editadosRaw) {
-      const editados = JSON.parse(editadosRaw);
-      if (editados[identificador]?.contrato_assinado) return editados[identificador].contrato_assinado;
-    }
-  } catch {}
-  return null;
+  if (!isModoDemo || !identificador) return null;
+  const item = lerJsonLocal<any>(`wrmax_contrato_assinado_${identificador}`, null);
+  if (item) return item;
+  const editados = lerJsonLocal<Record<string, any>>("wrmax_clientes_editados", {});
+  return editados[identificador]?.contrato_assinado || null;
 }
 
+// ------------------------------------------------------------------------------
+// Gestor (sessao autenticada) - o banco confere is_gestor() em tudo
+// ------------------------------------------------------------------------------
+
 export async function prorrogarLink(linkId: string, minutos: number) {
-  if (!isSupabaseConfigured) return { sucesso: true };
+  if (!exigirSupabaseOuDemo()) return { sucesso: true };
   const { data, error } = await supabase.rpc("prorrogar_link", {
     p_link_id: linkId,
     p_minutos: minutos,
   });
-  if (error) throw error;
+  if (error) throw new Error(mensagemDeErro(error, "Não foi possível prorrogar o link."));
   return data;
 }
 
 export async function bloquearLink(linkId: string, motivo = "Bloqueado pelo gestor") {
-  if (!isSupabaseConfigured) return { sucesso: true };
+  if (!exigirSupabaseOuDemo()) return { sucesso: true };
   const { data, error } = await supabase.rpc("bloquear_link", {
     p_link_id: linkId,
     p_motivo: motivo,
   });
-  if (error) throw error;
+  if (error) throw new Error(mensagemDeErro(error, "Não foi possível bloquear o link."));
   return data;
 }
 
 export async function desbloquearLink(linkId: string) {
-  if (!isSupabaseConfigured) return { sucesso: true };
+  if (!exigirSupabaseOuDemo()) return { sucesso: true };
   const { data, error } = await supabase.rpc("desbloquear_link", {
     p_link_id: linkId,
   });
-  if (error) throw error;
+  if (error) throw new Error(mensagemDeErro(error, "Não foi possível desbloquear o link."));
   return data;
 }
 
 export async function excluirLinkTemporario(linkId: string) {
-  if (!isSupabaseConfigured) return { sucesso: true };
+  if (!exigirSupabaseOuDemo()) return { sucesso: true };
   const { data, error } = await supabase.rpc("excluir_link_temporario", {
     p_link_id: linkId,
   });
-  if (error) throw error;
+  if (error) throw new Error(mensagemDeErro(error, "Não foi possível excluir o link."));
   return data;
 }
 
 export async function atualizarStatusPix(clienteId: string, pago: boolean) {
-  if (typeof window !== "undefined") {
-    try {
-      const editadosRaw = localStorage.getItem("wrmax_clientes_editados");
-      const editados: Record<string, any> = editadosRaw ? JSON.parse(editadosRaw) : {};
-      editados[clienteId] = { ...(editados[clienteId] || {}), pix_pago: pago };
-      localStorage.setItem("wrmax_clientes_editados", JSON.stringify(editados));
-
-      const locaisRaw = localStorage.getItem("wrmax_clientes_locais");
-      if (locaisRaw) {
-        const locais = JSON.parse(locaisRaw);
-        const idx = locais.findIndex((c: any) => c.id === clienteId);
-        if (idx >= 0) {
-          locais[idx].pix_pago = pago;
-          localStorage.setItem("wrmax_clientes_locais", JSON.stringify(locais));
-        }
-      }
-
-      window.dispatchEvent(
-        new CustomEvent("wrmax:pix_status_atualizado", { detail: { clienteId, pago } })
-      );
-      window.dispatchEvent(
-        new CustomEvent("wrmax:projeto_atualizado", { detail: { clienteId, dados: { pix_pago: pago } } })
-      );
-    } catch {}
+  if (exigirSupabaseOuDemo()) {
+    const { data, error } = await supabase.rpc("atualizar_status_pix", {
+      p_cliente_id: clienteId,
+      p_pago: pago,
+    });
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível atualizar o status do PIX."));
+    emitirEvento("wrmax:pix_status_atualizado", { clienteId, pago });
+    return data;
   }
 
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase.rpc("atualizar_status_pix", {
-        p_cliente_id: clienteId,
-        p_pago: pago,
-      });
-      if (error) {
-        console.warn("RPC atualizar_status_pix aviso defensivo:", error);
-      }
-      return data || { sucesso: true, pix_pago: pago };
-    } catch (err) {
-      console.warn("atualizarStatusPix erro capturado:", err);
-    }
+  const editados = lerJsonLocal<Record<string, any>>("wrmax_clientes_editados", {});
+  editados[clienteId] = { ...(editados[clienteId] || {}), pix_pago: pago };
+  gravarJsonLocal("wrmax_clientes_editados", editados);
+  const locais = lerJsonLocal<any[]>("wrmax_clientes_locais", []);
+  const idx = locais.findIndex((c) => c.id === clienteId);
+  if (idx >= 0) {
+    locais[idx].pix_pago = pago;
+    gravarJsonLocal("wrmax_clientes_locais", locais);
   }
-
+  emitirEvento("wrmax:pix_status_atualizado", { clienteId, pago });
+  emitirEvento("wrmax:projeto_atualizado", { clienteId, dados: { pix_pago: pago } });
   return { sucesso: true, pix_pago: pago };
 }
 
+// Comprovante recebido por WhatsApp/e-mail e anexado pelo gestor.
+export async function anexarComprovantePixGestor(clienteId: string, file: File) {
+  const info = { nome: file.name, data: new Date().toISOString(), tamanho: file.size };
+
+  if (exigirSupabaseOuDemo()) {
+    const ext = extensaoSegura(file.name, ["pdf", "png", "jpg", "jpeg", "webp"]);
+    if (!ext) throw new Error("Formato de arquivo não permitido.");
+    const caminho = `${clienteId}/comprovante_pix_gestor_${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("comprovantes-pix")
+      .upload(caminho, file, file.type ? { contentType: file.type } : {});
+    if (upErr) throw new Error(mensagemDeErro(upErr, "Falha no envio do comprovante."));
+    const { error } = await supabase
+      .from("clientes_onboarding")
+      .update({
+        comprovante_pix_path: montarRefStorage("comprovantes-pix", caminho),
+        comprovante_pix_nome: file.name,
+        comprovante_pix_enviado_em: info.data,
+      })
+      .eq("id", clienteId);
+    if (error) throw new Error(mensagemDeErro(error, "Falha ao registrar o comprovante."));
+    emitirEvento("wrmax:comprovante_pix_enviado", { identificador: clienteId, info });
+    return { sucesso: true, info };
+  }
+
+  const infoDemo = { ...info, url: URL.createObjectURL(file) };
+  gravarJsonLocal(`wrmax_comprovante_pix_${clienteId}`, infoDemo);
+  emitirEvento("wrmax:comprovante_pix_enviado", { identificador: clienteId, info: infoDemo });
+  return { sucesso: true, info: infoDemo };
+}
+
 export async function atualizarApresentacaoCliente(clienteId: string, file: File) {
-  let url = "";
   const nome = file.name;
 
-  if (isSupabaseConfigured) {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+  if (exigirSupabaseOuDemo()) {
+    const caminho = `${clienteId}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from("apresentacoes-pdf")
-      .upload(fileName, file, { contentType: "application/pdf", upsert: true });
+      .upload(caminho, file, { contentType: "application/pdf" });
+    if (uploadError) throw new Error(mensagemDeErro(uploadError, "Falha no envio da apresentação."));
 
-    if (uploadError) {
-      console.error("Erro no upload para apresentacoes-pdf:", uploadError);
-      throw uploadError;
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("apresentacoes-pdf")
-      .getPublicUrl(fileName);
-
-    url = publicUrlData.publicUrl;
-
+    const ref = montarRefStorage("apresentacoes-pdf", caminho);
     const { error: dbError } = await supabase
       .from("clientes_onboarding")
-      .update({ apresentacao_pdf_url: url, apresentacao_pdf_nome: nome })
+      .update({ apresentacao_pdf_url: ref, apresentacao_pdf_nome: nome })
       .eq("id", clienteId);
-
-    if (dbError) console.warn("Erro ao atualizar banco com apresentacao:", dbError);
-  } else {
-    url = URL.createObjectURL(file);
+    if (dbError) throw new Error(mensagemDeErro(dbError, "Falha ao vincular a apresentação ao cliente."));
+    return { sucesso: true, url: ref, nome };
   }
 
-  if (typeof window !== "undefined") {
-    try {
-      const editadosRaw = localStorage.getItem("wrmax_clientes_editados");
-      const editados = editadosRaw ? JSON.parse(editadosRaw) : {};
-      editados[clienteId] = { ...(editados[clienteId] || {}), apresentacao_pdf_url: url, apresentacao_pdf_nome: nome };
-      localStorage.setItem("wrmax_clientes_editados", JSON.stringify(editados));
-    } catch {}
-  }
-
+  const url = URL.createObjectURL(file);
+  const editados = lerJsonLocal<Record<string, any>>("wrmax_clientes_editados", {});
+  editados[clienteId] = { ...(editados[clienteId] || {}), apresentacao_pdf_url: url, apresentacao_pdf_nome: nome };
+  gravarJsonLocal("wrmax_clientes_editados", editados);
   return { sucesso: true, url, nome };
 }
 

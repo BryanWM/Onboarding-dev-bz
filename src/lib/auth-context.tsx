@@ -1,12 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase, isSupabaseConfigured, signInAdmin, signOutAdmin } from "./supabase";
+import { supabase, isSupabaseConfigured, isModoDemo, signInAdmin, signOutAdmin } from "./supabase";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isConfigured: boolean;
+  modoDemo: boolean;
+  // null = ainda verificando; false = logado, mas fora da tabela public.gestores
+  isGestor: boolean | null;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -17,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGestor, setIsGestor] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -41,9 +45,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      setIsGestor(null);
+      return;
+    }
+    if (!isSupabaseConfigured) {
+      setIsGestor(isModoDemo);
+      return;
+    }
+    let ativo = true;
+    setIsGestor(null);
+    supabase.rpc("is_gestor").then(({ data, error }) => {
+      if (ativo) setIsGestor(!error && data === true);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [user]);
+
   const login = async (email: string, pass: string) => {
     if (!isSupabaseConfigured) {
-      // Modo de demonstracao quando variaveis de ambiente nao estao configuradas
+      if (!isModoDemo) {
+        throw new Error("Login indisponível: Supabase não configurado neste ambiente.");
+      }
+      // Modo demo (dev local sem .env): qualquer credencial entra
       const mockUser = {
         id: "mock-admin-id",
         email,
@@ -83,6 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         isConfigured: isSupabaseConfigured,
+        modoDemo: isModoDemo,
+        isGestor,
         login,
         logout,
       }}

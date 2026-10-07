@@ -14,7 +14,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login, isConfigured } = useAuth();
+  const { login, modoDemo } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -62,7 +62,7 @@ function LoginPage() {
         </div>
 
         {/* Alerta de Modo de Desenvolvimento */}
-        {!isConfigured && (
+        {modoDemo && (
           <div className="mb-6 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
             <div>

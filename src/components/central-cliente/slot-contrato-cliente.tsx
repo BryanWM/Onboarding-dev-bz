@@ -16,7 +16,10 @@ interface SlotContratoClienteProps {
     status_envio: string;
     docx_storage_path: string | null;
     docx_assinado_storage_path: string | null;
+    docx_assinado_nome?: string | null;
   } | null;
+  // URL ja resolvida (assinada) do modelo DOCX; null usa o modelo padrao do app
+  modeloUrl?: string | null;
   onUploadAssinado?: (file: File) => Promise<void>;
   dadosCadastrais?: Record<string, any> | null;
   clienteNome?: string;
@@ -28,6 +31,7 @@ interface SlotContratoClienteProps {
 export function SlotContratoCliente({
   contratoLiberado = false,
   contrato = null,
+  modeloUrl = null,
   onUploadAssinado,
   dadosCadastrais = null,
   clienteNome,
@@ -42,7 +46,10 @@ export function SlotContratoCliente({
   const [assinadoEnviado, setAssinadoEnviado] = useState(
     Boolean(contrato?.docx_assinado_storage_path)
   );
-  const [nomeArquivoAssinado, setNomeArquivoAssinado] = useState<string | null>(null);
+  const [nomeArquivoAssinado, setNomeArquivoAssinado] = useState<string | null>(
+    contrato?.docx_assinado_nome || null
+  );
+  const modeloDocx = modeloUrl && modeloUrl !== "#" ? modeloUrl : undefined;
 
   const handleBaixarContratoParametrizado = async () => {
     if (!contrato) return;
@@ -79,18 +86,14 @@ export function SlotContratoCliente({
           diaVencimento: String(contrato.dia_vencimento || 10),
         },
         undefined,
-        contrato.docx_storage_path && contrato.docx_storage_path !== "#"
-          ? contrato.docx_storage_path
-          : undefined,
+        modeloDocx,
       );
 
       baixarBlobNoNavegador(blob, fileName);
     } catch (err) {
       console.error("Falha ao compilar contrato parametrizado:", err);
       const fallbackUrl =
-        contrato.docx_storage_path && contrato.docx_storage_path !== "#"
-          ? contrato.docx_storage_path
-          : "/modelo_de_contratos/predefinidos/Contrato_WRMAX_Modelo_Parametrizado.docx";
+        modeloDocx || "/modelo_de_contratos/predefinidos/Contrato_WRMAX_Modelo_Parametrizado.docx";
       const link = document.createElement("a");
       link.href = fallbackUrl;
       link.download = "Contrato_WRMAX.docx";
@@ -120,18 +123,19 @@ export function SlotContratoCliente({
   const handleEnviarAssinado = async () => {
     if (!file) return;
     setUploading(true);
+    setErroTamanho(null);
     try {
       if (onUploadAssinado) {
         await onUploadAssinado(file);
       } else {
-        const targetId = clienteId || contrato?.id || token || "contrato-atual";
-        await enviarContratoAssinado(targetId, file, { clienteId, contratoId: contrato?.id, token });
+        await enviarContratoAssinado(token || "", file, { clienteId, contratoId: contrato?.id });
       }
       setAssinadoEnviado(true);
       setNomeArquivoAssinado(file.name);
       setFile(null);
     } catch (err) {
       console.error(err);
+      setErroTamanho(err instanceof Error ? err.message : "Não foi possível enviar o contrato assinado.");
     } finally {
       setUploading(false);
     }

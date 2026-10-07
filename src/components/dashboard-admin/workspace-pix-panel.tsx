@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { QrCode, CheckCircle2, Clock, Upload, Download, FileCheck, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
-import { obterComprovantePix, enviarComprovantePix, atualizarStatusPix } from "@/lib/supabase";
+import { obterComprovantePix, anexarComprovantePixGestor, atualizarStatusPix } from "@/lib/supabase";
+import { useUrlArquivoGestor } from "@/lib/storage-refs";
 import { gerarPixCopiaECola } from "@/lib/pix-util";
 import { CopyRow } from "@/components/central-cliente/copy-row";
 
@@ -9,6 +10,10 @@ interface WorkspacePixPanelProps {
   clienteNome: string;
   pixPago: boolean;
   whatsapp?: string | null;
+  // comprovante registrado no banco (bucket privado comprovantes-pix)
+  comprovanteRef?: string | null;
+  comprovanteNome?: string | null;
+  comprovanteEnviadoEm?: string | null;
   onStatusAlterado?: (novoPago: boolean) => Promise<void> | void;
 }
 
@@ -19,13 +24,20 @@ export function WorkspacePixPanel({
   clienteNome,
   pixPago,
   whatsapp,
+  comprovanteRef,
+  comprovanteNome,
+  comprovanteEnviadoEm,
   onStatusAlterado,
 }: WorkspacePixPanelProps) {
-  const [comprovante, setComprovante] = useState<any>(() => obterComprovantePix(clienteId));
+  const [comprovanteDemo, setComprovante] = useState<any>(() => obterComprovantePix(clienteId));
   const [arquivoManual, setArquivoManual] = useState<File | null>(null);
   const [salvandoManual, setSalvandoManual] = useState(false);
   const [alterandoStatus, setAlterandoStatus] = useState(false);
   const [erroArquivo, setErroArquivo] = useState<string | null>(null);
+  const urlComprovante = useUrlArquivoGestor(comprovanteRef);
+  const comprovante = comprovanteRef
+    ? { nome: comprovanteNome || "comprovante", data: comprovanteEnviadoEm, url: urlComprovante }
+    : comprovanteDemo;
 
   useEffect(() => {
     const checarComprovante = () => {
@@ -50,10 +62,13 @@ export function WorkspacePixPanel({
 
   const handleToggleStatus = async () => {
     setAlterandoStatus(true);
+    setErroArquivo(null);
     const novoStatus = !pixPago;
     try {
       await atualizarStatusPix(clienteId, novoStatus);
       if (onStatusAlterado) await onStatusAlterado(novoStatus);
+    } catch (err) {
+      setErroArquivo(err instanceof Error ? err.message : "Não foi possível atualizar o status do PIX.");
     } finally {
       setAlterandoStatus(false);
     }
@@ -74,10 +89,14 @@ export function WorkspacePixPanel({
   const handleUploadManual = async () => {
     if (!arquivoManual) return;
     setSalvandoManual(true);
+    setErroArquivo(null);
     try {
-      const res = await enviarComprovantePix(clienteId, arquivoManual);
+      const res = await anexarComprovantePixGestor(clienteId, arquivoManual);
       setComprovante(res.info);
       setArquivoManual(null);
+      if (onStatusAlterado) await onStatusAlterado(pixPago);
+    } catch (err) {
+      setErroArquivo(err instanceof Error ? err.message : "Não foi possível anexar o comprovante.");
     } finally {
       setSalvandoManual(false);
     }
@@ -148,9 +167,11 @@ export function WorkspacePixPanel({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm text-foreground truncate">{comprovante.nome}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Enviado em: {new Date(comprovante.data).toLocaleString("pt-BR")}
-                  </p>
+                  {comprovante.data && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Enviado em: {new Date(comprovante.data).toLocaleString("pt-BR")}
+                    </p>
+                  )}
                   {comprovante.tamanho && (
                     <p className="text-[11px] font-mono text-muted-foreground">
                       Tamanho: {(comprovante.tamanho / 1024).toFixed(1)} KB

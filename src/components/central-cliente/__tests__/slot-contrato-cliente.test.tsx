@@ -26,9 +26,10 @@ describe("SlotContratoCliente Component", () => {
           valor_mensal: 2500,
           dia_vencimento: 10,
           status_envio: "enviado_ao_cliente",
-          docx_storage_path: "https://example.com/contrato.docx",
+          docx_storage_path: "modelos-contrato/modelo.docx",
           docx_assinado_storage_path: null,
         }}
+        modeloUrl="https://example.com/modelo-assinado.docx"
         dadosCadastrais={{
           razao_social: "Cliente Teste Ltda",
           cnpj: "12.345.678/0001-90",
@@ -59,7 +60,8 @@ describe("SlotContratoCliente Component", () => {
           diaVencimento: "10",
         }),
         undefined,
-        "https://example.com/contrato.docx",
+        // usa a URL assinada, nunca a referencia crua do bucket privado
+        "https://example.com/modelo-assinado.docx",
       );
     });
 

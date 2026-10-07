@@ -66,11 +66,12 @@ class AdminErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 }
 
 export function AdminDashboardApp() {
-  const { user, loading: authLoading, isConfigured, logout } = useAuth();
+  const { user, loading: authLoading, modoDemo, isGestor, logout } = useAuth();
   const navigate = useNavigate();
 
   const [clientes, setClientes] = useState<ClienteOnboarding[]>([]);
   const [loadingClientes, setLoadingClientes] = useState(true);
+  const [erroClientes, setErroClientes] = useState<string | null>(null);
   const [selectedClienteId, setSelectedClienteId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("wrmax_selected_cliente_id") || null;
@@ -79,28 +80,35 @@ export function AdminDashboardApp() {
   });
   const [viewMode, setViewMode] = useState<"clientes" | "modelos">("clientes");
 
+  // Fora do modo demo (dev local sem .env), o painel exige sessao real.
+  const precisaLogin = !modoDemo && !user;
+
   useEffect(() => {
-    if (!authLoading && isConfigured && !user) {
+    if (!authLoading && precisaLogin) {
       navigate({ to: "/login" });
     }
-  }, [authLoading, isConfigured, user, navigate]);
+  }, [authLoading, precisaLogin, navigate]);
 
   const carregarClientes = useCallback(async () => {
     setLoadingClientes(true);
+    setErroClientes(null);
     try {
       const data = await listarClientes();
       setClientes(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Erro ao listar clientes:", err);
       setClientes([]);
+      setErroClientes(err instanceof Error ? err.message : "Não foi possível carregar os clientes.");
     } finally {
       setLoadingClientes(false);
     }
   }, []);
 
+  const podeCarregar = modoDemo || isGestor === true;
+
   useEffect(() => {
-    carregarClientes();
-  }, [carregarClientes]);
+    if (podeCarregar) carregarClientes();
+  }, [carregarClientes, podeCarregar]);
 
   const handleSelectCliente = (cliente: ClienteOnboarding) => {
     if (!cliente) return;
@@ -121,7 +129,7 @@ export function AdminDashboardApp() {
     ? clientes.find((c) => c && c.id === selectedClienteId) || null
     : null;
 
-  if (authLoading) {
+  if (authLoading || (!precisaLogin && !podeCarregar && isGestor === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-3">
@@ -134,8 +142,31 @@ export function AdminDashboardApp() {
     );
   }
 
-  if (isConfigured && !user) {
+  if (precisaLogin) {
     return null;
+  }
+
+  if (!modoDemo && isGestor === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground px-5">
+        <div className="metal-panel p-8 text-center space-y-4 max-w-md border-destructive/40">
+          <AlertCircle className="size-8 text-destructive mx-auto" />
+          <h1 className="text-base font-bold">Acesso restrito a gestores</h1>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            O usuário {user?.email} está autenticado, mas não está cadastrado como gestor.
+            Peça a um administrador para incluí-lo na tabela <code>gestores</code> do Supabase.
+          </p>
+          <button
+            type="button"
+            onClick={logout}
+            className="metal-button px-4 py-2 rounded-lg text-xs font-bold text-primary-foreground inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut className="size-3.5" />
+            <span>Sair</span>
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -171,6 +202,12 @@ export function AdminDashboardApp() {
 
       {/* Conteudo Principal com Error Boundary */}
       <main className="mx-auto max-w-6xl px-5 py-8">
+        {erroClientes && (
+          <div className="mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center gap-2">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{erroClientes}</span>
+          </div>
+        )}
         <AdminErrorBoundary onReset={handleVoltarParaLista}>
           {viewMode === "modelos" ? (
             <div className="space-y-6">

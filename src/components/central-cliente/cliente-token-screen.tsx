@@ -1,6 +1,13 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Clock, ShieldCheck, UserCheck } from "lucide-react";
-import { validarLinkToken, isSupabaseConfigured, type ValidacaoTokenResultado } from "@/lib/supabase";
+import {
+  validarLinkToken,
+  isSupabaseConfigured,
+  isModoDemo,
+  MOTIVO_FALHA_CONEXAO,
+  type ValidacaoTokenResultado,
+} from "@/lib/supabase";
+import { obterArquivosCliente } from "@/lib/arquivos-cliente";
 import { SlotApresentacao } from "./slot-apresentacao";
 import { SlotPix } from "./slot-pix";
 import { SlotOnboarding } from "./slot-onboarding";
@@ -12,10 +19,24 @@ interface ClienteTokenScreenProps {
   token?: string;
 }
 
+interface UrlsArquivos {
+  apresentacao: string | null;
+  contratoModelo: string | null;
+  contratoAssinado: string | null;
+}
+
+// URLs assinadas valem 1h; renova antes de expirar com a pagina aberta.
+const RENOVAR_URLS_MS = 45 * 60 * 1000;
+
 export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps) {
   const [loading, setLoading] = useState(true);
   const [dados, setDados] = useState<ValidacaoTokenResultado | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState<number>(0);
+  const [urls, setUrls] = useState<UrlsArquivos>({
+    apresentacao: null,
+    contratoModelo: null,
+    contratoAssinado: null,
+  });
 
   const token = useMemo(() => {
     if (propToken) return propToken;
@@ -49,7 +70,13 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
     try {
       const res = await validarLinkToken(token || "");
 
-      if (res.valido) {
+      // Falha de rede no polling nao derruba o cliente da jornada.
+      if (silencioso && !res.valido && res.motivo === MOTIVO_FALHA_CONEXAO) {
+        return;
+      }
+
+      // Com Supabase configurado, o servidor e a unica fonte de verdade.
+      if (res.valido && isModoDemo) {
         const contratoLocal = obterContratoLocal(res.cliente?.id);
         if (!res.contrato_liberado && contratoLocal) {
           res.contrato_liberado = true;
@@ -76,13 +103,11 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
             }
           } catch {}
         }
+      }
 
-        setDados(res);
-        if (res.link?.segundos_restantes) {
-          setSegundosRestantes(res.link.segundos_restantes);
-        }
-      } else {
-        setDados(res);
+      setDados(res);
+      if (res.valido && res.link?.segundos_restantes) {
+        setSegundosRestantes(res.link.segundos_restantes);
       }
     } catch {
       setDados({ valido: false });
@@ -133,6 +158,37 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
       window.removeEventListener("wrmax:projeto_excluido", onProjetoExcluido);
     };
   }, [token, carregarStatus]);
+
+  // Buckets privados: as URLs dos arquivos vem assinadas do servidor, que valida o
+  // token. So busca de novo quando algum arquivo muda (o polling roda a cada 3s).
+  const refApresentacao = dados?.valido ? dados.cliente?.apresentacao_pdf_url || null : null;
+  const refModelo = dados?.valido ? dados.contrato?.docx_storage_path || null : null;
+  const refAssinado = dados?.valido ? dados.contrato?.docx_assinado_storage_path || null : null;
+
+  useEffect(() => {
+    if (!token || !dados?.valido) return;
+    if (!isSupabaseConfigured) {
+      setUrls({ apresentacao: refApresentacao, contratoModelo: refModelo, contratoAssinado: refAssinado });
+      return;
+    }
+
+    let ativo = true;
+    const buscar = () => {
+      obterArquivosCliente({ data: { token } })
+        .then((r) => {
+          if (ativo && r.valido) {
+            setUrls({ apresentacao: r.apresentacao, contratoModelo: r.contratoModelo, contratoAssinado: r.contratoAssinado });
+          }
+        })
+        .catch((err) => console.warn("Falha ao obter arquivos do cliente:", err));
+    };
+    buscar();
+    const intervalo = setInterval(buscar, RENOVAR_URLS_MS);
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
+  }, [token, dados?.valido, refApresentacao, refModelo, refAssinado]);
 
   // Contador regressivo do link
   useEffect(() => {
@@ -221,14 +277,16 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
       <main className="mx-auto grid max-w-4xl gap-6 sm:gap-8 px-5 sm:px-8 py-8 sm:py-12">
         {/* Slot 01: Apresentacao em PDF enviada pelo Admin */}
         <SlotApresentacao
-          apresentacaoUrl={dados.cliente?.apresentacao_pdf_url}
+          apresentacaoUrl={urls.apresentacao}
           apresentacaoNome={dados.cliente?.apresentacao_pdf_nome}
         />
 
         {/* Slot 02: Pagamento via PIX com QR Code oficial e opcao de anexar comprovante */}
         <SlotPix
           pixPago={Boolean(dados.cliente?.pix_pago)}
+          token={token || ""}
           clienteId={dados.cliente?.id || token}
+          comprovanteEnviadoInicial={dados.cliente?.comprovante_pix_nome || null}
         />
 
         {/* Slot 03: Formulario de Onboarding (Google Forms) configurado pelo Admin */}
@@ -248,6 +306,7 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
         <SlotContratoCliente
           contratoLiberado={dados.contrato_liberado}
           contrato={dados.contrato}
+          modeloUrl={urls.contratoModelo}
           dadosCadastrais={dados.dados_cadastrais}
           clienteNome={dados.cliente?.nome_completo}
           clienteEmail={dados.cliente?.email}

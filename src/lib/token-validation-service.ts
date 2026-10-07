@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabase-client";
+import { supabase, isSupabaseConfigured, isModoDemo } from "./supabase-client";
 import { MOCK_CLIENTES } from "./mock-data";
 import type { ClienteOnboarding } from "./mock-data";
 
@@ -22,6 +22,8 @@ export interface ValidacaoTokenResultado {
     apresentacao_pdf_nome: string | null;
     pix_pago: boolean;
     link_onboarding_form?: string | null;
+    comprovante_pix_nome?: string | null;
+    comprovante_pix_enviado_em?: string | null;
   };
   cadastro_preenchido?: boolean;
   dados_cadastrais?: Record<string, any> | null;
@@ -33,15 +35,42 @@ export interface ValidacaoTokenResultado {
     status_envio: string;
     docx_storage_path: string | null;
     docx_assinado_storage_path: string | null;
-  };
+    docx_assinado_nome?: string | null;
+  } | null;
 }
+
+// Falha de rede/servidor: nao significa que o link e invalido.
+export const MOTIVO_FALHA_CONEXAO = "FALHA_DE_CONEXAO";
 
 export async function validarLinkToken(token: string): Promise<ValidacaoTokenResultado> {
   if (!token) {
     return { valido: false, motivo: "TOKEN_NAO_ENCONTRADO" };
   }
 
-  // 0. Bloqueio imediato caso o projeto ou token tenha sido excluido
+  // Com Supabase configurado, a resposta da RPC e a unica fonte de verdade:
+  // link bloqueado, expirado ou inexistente fica invalido (fail closed).
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.rpc("validar_link_token", { p_token: token });
+      if (error) return { valido: false, motivo: MOTIVO_FALHA_CONEXAO };
+      if (!data) return { valido: false, motivo: "TOKEN_NAO_ENCONTRADO" };
+      return data as unknown as ValidacaoTokenResultado;
+    } catch {
+      return { valido: false, motivo: MOTIVO_FALHA_CONEXAO };
+    }
+  }
+
+  if (!isModoDemo) {
+    return { valido: false, motivo: "SUPABASE_NAO_CONFIGURADO" };
+  }
+
+  return validarTokenModoDemo(token);
+}
+
+// Somente desenvolvimento local sem .env: clientes do localStorage e mocks.
+function validarTokenModoDemo(token: string): ValidacaoTokenResultado {
+  let resultado: ValidacaoTokenResultado = { valido: false, motivo: "TOKEN_NAO_ENCONTRADO" };
+
   if (typeof window !== "undefined") {
     try {
       const tokExcluidosRaw = localStorage.getItem("wrmax_tokens_excluidos");
@@ -59,27 +88,7 @@ export async function validarLinkToken(token: string): Promise<ValidacaoTokenRes
         }
       }
     } catch {}
-  }
 
-  let resultado: ValidacaoTokenResultado = { valido: false, motivo: "TOKEN_NAO_ENCONTRADO" };
-
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase.rpc("validar_link_token", { p_token: token });
-      if (error) {
-        return { valido: false, motivo: error.message };
-      }
-      if (data) {
-        const rpcRes = data as unknown as ValidacaoTokenResultado;
-        if (rpcRes.valido) return rpcRes;
-      }
-    } catch {
-      // continua para fallback
-    }
-  }
-
-  // 1. Procurar em clientes locais salvos no localStorage
-  if (typeof window !== "undefined") {
     try {
       const locaisRaw = localStorage.getItem("wrmax_clientes_locais");
       if (locaisRaw) {
@@ -113,14 +122,13 @@ export async function validarLinkToken(token: string): Promise<ValidacaoTokenRes
             cadastro_preenchido: Boolean(cliLocal.dados_cadastrais_cliente?.length),
             dados_cadastrais: cliLocal.dados_cadastrais_cliente?.[0] || null,
             contrato_liberado: Boolean(cliLocal.contratos?.length),
-            contrato: cliLocal.contratos?.[0] || null,
+            contrato: (cliLocal.contratos?.[0] as ValidacaoTokenResultado["contrato"]) || null,
           };
         }
       }
     } catch {}
   }
 
-  // 2. Procurar em MOCK_CLIENTES
   const cliMock = MOCK_CLIENTES.find((c) =>
     c.links_temporarios?.some((l) => l.token === token) || c.id === token
   );
@@ -152,7 +160,6 @@ export async function validarLinkToken(token: string): Promise<ValidacaoTokenRes
     };
   }
 
-  // 3. Fallback defensivo exclusivo para tokens de desenvolvimento de testes locais
   if (token === "tok_padrao" || token.startsWith("mock-")) {
     resultado = {
       valido: true,

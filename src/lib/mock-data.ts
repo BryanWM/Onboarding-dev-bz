@@ -10,6 +10,10 @@ export interface ClienteOnboarding {
   contrato_assinado?: any;
   pix_pago?: boolean;
   pix_pago_em?: string | null;
+  comprovante_pix_path?: string | null;
+  comprovante_pix_nome?: string | null;
+  comprovante_pix_enviado_em?: string | null;
+  data_programacao?: string | null;
   created_at?: string;
   links_temporarios?: Array<{
     id: string;
@@ -33,6 +37,8 @@ export interface ClienteOnboarding {
     status_envio?: string;
     liberado_para_cliente?: boolean;
     docx_storage_path?: string | null;
+    docx_assinado_storage_path?: string | null;
+    docx_assinado_nome?: string | null;
     modelo_id?: string | null;
   }>;
 }

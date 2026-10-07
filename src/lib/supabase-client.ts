@@ -9,4 +9,9 @@ export const isSupabaseConfigured = Boolean(
   env["VITE_SUPABASE_URL"] && env["VITE_SUPABASE_ANON_KEY"]
 );
 
+// Dados mock, login falso e fallbacks em localStorage so existem em
+// desenvolvimento local sem .env. Um build de producao sem as variaveis
+// fica fechado (login recusa, links invalidos) em vez de abrir o painel.
+export const isModoDemo = !isSupabaseConfigured && Boolean(import.meta.env.DEV);
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

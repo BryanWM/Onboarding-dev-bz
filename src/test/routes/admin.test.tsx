@@ -5,6 +5,8 @@ import { AuthProvider } from "@/lib/auth-context";
 
 vi.mock("@/lib/supabase", () => ({
   isSupabaseConfigured: false,
+  // modo demo (dev local sem .env): painel abre sem login
+  isModoDemo: true,
   getAdminSession: vi.fn().mockResolvedValue(null),
   supabase: {
     auth: {

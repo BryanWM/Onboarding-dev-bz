@@ -1,7 +1,9 @@
 import { useState, type ChangeEvent } from "react";
 import { FileText, Upload, Download, ExternalLink, Loader2, Eye } from "lucide-react";
+import { useUrlArquivoGestor } from "@/lib/storage-refs";
 
 interface WorkspacePresentationPanelProps {
+  // referencia "bucket/caminho" (ou URL antiga); a URL assinada e gerada aqui
   apresentacaoUrl?: string | null;
   apresentacaoNome?: string | null;
   onUpload: (file: File) => Promise<void> | void;
@@ -9,12 +11,13 @@ interface WorkspacePresentationPanelProps {
 }
 
 export function WorkspacePresentationPanel({
-  apresentacaoUrl,
+  apresentacaoUrl: apresentacaoRef,
   apresentacaoNome,
   onUpload,
   loading = false,
 }: WorkspacePresentationPanelProps) {
   const [uploading, setUploading] = useState(false);
+  const apresentacaoUrl = useUrlArquivoGestor(apresentacaoRef);
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

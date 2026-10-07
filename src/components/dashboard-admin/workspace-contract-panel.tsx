@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { ScrollText, Loader2, CheckCircle2, ShieldCheck, FileCheck, Download, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { obterContratoAssinado } from "@/lib/supabase";
+import { useUrlArquivoGestor } from "@/lib/storage-refs";
 import { gerarContratoDocx, baixarBlobNoNavegador } from "@/lib/contrato-generator";
 import { ContractPreviewModal } from "./contract-preview-modal";
 import { ContractConfirmModal } from "./contract-confirm-modal";
@@ -20,6 +21,7 @@ interface ContratoItem {
   link_visualizacao?: string | null;
   docx_storage_path?: string | null;
   docx_assinado_storage_path?: string | null;
+  docx_assinado_nome?: string | null;
 }
 
 interface WorkspaceContractPanelProps {
@@ -46,9 +48,15 @@ export function WorkspaceContractPanel({
   const [baixandoDocx, setBaixandoDocx] = useState(false);
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
   const [modalPreviewAberto, setModalPreviewAberto] = useState(false);
-  const [contratoAssinado, setContratoAssinado] = useState<any>(
+  const [contratoAssinadoDemo, setContratoAssinado] = useState<any>(
     () => obterContratoAssinado(clienteId) || (contrato?.id ? obterContratoAssinado(contrato.id) : null)
   );
+  // Buckets privados: modelo e via assinada abrem por URL assinada (sessao do gestor)
+  const modeloDocxUrl = useUrlArquivoGestor(contrato?.docx_storage_path);
+  const assinadoUrl = useUrlArquivoGestor(contrato?.docx_assinado_storage_path);
+  const contratoAssinado = contrato?.docx_assinado_storage_path
+    ? { nome: contrato.docx_assinado_nome || "Contrato_Assinado.pdf", url: assinadoUrl }
+    : contratoAssinadoDemo;
 
   useEffect(() => {
     const checarAssinado = () => {
@@ -109,13 +117,11 @@ export function WorkspaceContractPanel({
           diaVencimento: String(contrato?.dia_vencimento || diaVencimento),
         },
         undefined,
-        contrato?.docx_storage_path && contrato.docx_storage_path !== "#"
-          ? contrato.docx_storage_path
-          : undefined,
+        modeloDocxUrl && modeloDocxUrl !== "#" ? modeloDocxUrl : undefined,
       );
       baixarBlobNoNavegador(blob, fileName);
     } catch {
-      window.open(contrato?.docx_storage_path || "/modelo_de_contratos/predefinidos/Contrato_WRMAX_Modelo_Parametrizado.docx", "_blank");
+      window.open(modeloDocxUrl || "/modelo_de_contratos/predefinidos/Contrato_WRMAX_Modelo_Parametrizado.docx", "_blank");
     } finally {
       setBaixandoDocx(false);
     }
@@ -175,7 +181,7 @@ export function WorkspaceContractPanel({
       )}
 
       {/* Secao de Contrato Assinado Recebido do Cliente */}
-      {contratoAssinado || contrato?.docx_assinado_storage_path ? (
+      {contratoAssinado ? (
         <div className="p-4 sm:p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
@@ -192,7 +198,7 @@ export function WorkspaceContractPanel({
           </div>
 
           <a
-            href={contratoAssinado?.url || contrato?.docx_assinado_storage_path || "#"}
+            href={contratoAssinado?.url || "#"}
             download={contratoAssinado?.nome || "Contrato_Assinado.pdf"}
             target="_blank"
             rel="noreferrer"
@@ -261,7 +267,7 @@ export function WorkspaceContractPanel({
         clienteNome={clienteNome}
         valorMensal={contrato?.valor_mensal || valorMensal}
         diaVencimento={contrato?.dia_vencimento || diaVencimento}
-        docxUrl={contrato?.docx_storage_path}
+        docxUrl={modeloDocxUrl}
         onClose={() => setModalPreviewAberto(false)}
       />
 

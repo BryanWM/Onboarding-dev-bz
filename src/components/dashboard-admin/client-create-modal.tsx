@@ -24,6 +24,7 @@ export function ClientCreateModal({
   const [submitting, setSubmitting] = useState(false);
   const [linkGerado, setLinkGerado] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const hojeFormatado = new Date().toLocaleString("pt-BR", {
     dateStyle: "short",
@@ -70,6 +71,7 @@ export function ClientCreateModal({
     e.preventDefault();
     if (!nome.trim() || submitting) return;
     setSubmitting(true);
+    setErro(null);
     try {
       const res = await criarClienteComLink(
         nome.trim(),
@@ -83,6 +85,7 @@ export function ClientCreateModal({
       if (onSuccess) await onSuccess();
     } catch (err) {
       console.error(err);
+      setErro(err instanceof Error ? err.message : "Não foi possível cadastrar o cliente.");
     } finally {
       setSubmitting(false);
     }
@@ -244,6 +247,12 @@ export function ClientCreateModal({
                 />
               </label>
             </div>
+
+            {erro && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs">
+                {erro}
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2 border-t border-border/60">
               <button

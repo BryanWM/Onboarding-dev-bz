@@ -14,7 +14,9 @@ export type ClienteStatus =
 
 export type ContratoStatusEnvio = "rascunho" | "gerado" | "enviado_ao_cliente" | "assinado";
 
-export interface Database {
+// Escrito a mao no formato que o supabase-js espera (Relationships/Views).
+// Mantenha alinhado com supabase/migrations.
+export type Database = {
   public: {
     Tables: {
       clientes_onboarding: {
@@ -28,6 +30,11 @@ export interface Database {
           apresentacao_pdf_nome: string | null;
           pix_pago: boolean;
           pix_pago_em: string | null;
+          link_onboarding_form: string | null;
+          comprovante_pix_path: string | null;
+          comprovante_pix_nome: string | null;
+          comprovante_pix_enviado_em: string | null;
+          data_programacao: string | null;
           observacoes: string | null;
           created_at: string;
           updated_at: string;
@@ -42,11 +49,17 @@ export interface Database {
           apresentacao_pdf_nome?: string | null;
           pix_pago?: boolean;
           pix_pago_em?: string | null;
+          link_onboarding_form?: string | null;
+          comprovante_pix_path?: string | null;
+          comprovante_pix_nome?: string | null;
+          comprovante_pix_enviado_em?: string | null;
+          data_programacao?: string | null;
           observacoes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["clientes_onboarding"]["Insert"]>;
+        Relationships: [];
       };
       links_temporarios: {
         Row: {
@@ -76,6 +89,15 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["links_temporarios"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "links_temporarios_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: false;
+            referencedRelation: "clientes_onboarding";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       dados_cadastrais_cliente: {
         Row: {
@@ -127,6 +149,15 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["dados_cadastrais_cliente"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "dados_cadastrais_cliente_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: true;
+            referencedRelation: "clientes_onboarding";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       modelos_contrato: {
         Row: {
@@ -150,6 +181,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["modelos_contrato"]["Insert"]>;
+        Relationships: [];
       };
       contratos: {
         Row: {
@@ -162,6 +194,7 @@ export interface Database {
           liberado_para_cliente: boolean;
           docx_storage_path: string | null;
           docx_assinado_storage_path: string | null;
+          docx_assinado_nome: string | null;
           enviado_ao_cliente_em: string | null;
           assinado_em: string | null;
           created_at: string;
@@ -177,14 +210,39 @@ export interface Database {
           liberado_para_cliente?: boolean;
           docx_storage_path?: string | null;
           docx_assinado_storage_path?: string | null;
+          docx_assinado_nome?: string | null;
           enviado_ao_cliente_em?: string | null;
           assinado_em?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["contratos"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "contratos_cliente_id_fkey";
+            columns: ["cliente_id"];
+            isOneToOne: false;
+            referencedRelation: "clientes_onboarding";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gestores: {
+        Row: {
+          user_id: string;
+          email: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          email?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gestores"]["Insert"]>;
+        Relationships: [];
       };
     };
+    Views: Record<never, never>;
     Functions: {
       validar_link_token: {
         Args: { p_token: string };
@@ -217,12 +275,23 @@ export interface Database {
       emitir_e_enviar_contrato: {
         Args: {
           p_cliente_id: string;
-          p_modelo_id?: string | null;
+          p_modelo_id: string | null;
           p_valor_mensal: number;
           p_dia_vencimento: number;
-          p_docx_url?: string | null;
         };
         Returns: Json;
+      };
+      registrar_comprovante_pix: {
+        Args: { p_token: string; p_path: string; p_nome: string };
+        Returns: Json;
+      };
+      registrar_contrato_assinado: {
+        Args: { p_token: string; p_path: string; p_nome: string };
+        Returns: Json;
+      };
+      is_gestor: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
     };
   };

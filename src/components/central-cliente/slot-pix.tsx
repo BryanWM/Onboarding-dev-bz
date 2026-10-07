@@ -15,7 +15,9 @@ interface SlotPixProps {
   favorecido?: string;
   whatsapp?: string;
   pixPago?: boolean;
+  token?: string;
   clienteId?: string;
+  comprovanteEnviadoInicial?: string | null;
 }
 
 function sanitizarNumeroWhatsapp(numero: string): string {
@@ -28,12 +30,14 @@ export function SlotPix({
   favorecido = FAVORECIDO_DEFAULT,
   whatsapp = WHATSAPP_DEFAULT,
   pixPago = false,
+  token = "",
   clienteId = "cliente-atual",
+  comprovanteEnviadoInicial = null,
 }: SlotPixProps) {
   const [comprovanteArquivo, setComprovanteArquivo] = useState<File | null>(null);
   const [enviandoComprovante, setEnviandoComprovante] = useState(false);
   const [erroTamanho, setErroTamanho] = useState<string | null>(null);
-  const [comprovanteEnviadoNome, setComprovanteEnviadoNome] = useState<string | null>(null);
+  const [comprovanteEnviadoNome, setComprovanteEnviadoNome] = useState<string | null>(comprovanteEnviadoInicial);
   const [canalEnvio, setCanalEnvio] = useState<"sistema" | "whatsapp">("whatsapp");
 
   const numeroFormatado = sanitizarNumeroWhatsapp(whatsapp);
@@ -70,10 +74,13 @@ export function SlotPix({
   const handleUploadComprovante = async () => {
     if (!comprovanteArquivo) return;
     setEnviandoComprovante(true);
+    setErroTamanho(null);
     try {
-      await enviarComprovantePix(clienteId, comprovanteArquivo);
+      await enviarComprovantePix(token, comprovanteArquivo, clienteId);
       setComprovanteEnviadoNome(comprovanteArquivo.name);
       setComprovanteArquivo(null);
+    } catch (err) {
+      setErroTamanho(err instanceof Error ? err.message : "Não foi possível enviar o comprovante.");
     } finally {
       setEnviandoComprovante(false);
     }

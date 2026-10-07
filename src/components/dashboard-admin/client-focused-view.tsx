@@ -78,9 +78,10 @@ export function ClientFocusedView({
   };
 
   const verificarComprovante = useCallback(() => {
-    const comp = obterComprovantePix(cliente.id) || obterComprovantePix(link.token);
+    const comp =
+      cliente.comprovante_pix_path || obterComprovantePix(cliente.id) || obterComprovantePix(link.token);
     setTemComprovante(Boolean(comp));
-  }, [cliente.id, link.token]);
+  }, [cliente.id, cliente.comprovante_pix_path, link.token]);
 
   useEffect(() => {
     listarModelosContrato()
@@ -117,40 +118,42 @@ export function ClientFocusedView({
     };
   }, [cliente.id, onClienteAtualizado, onVoltar, verificarComprovante]);
 
-  const handleToggleBloqueio = async () => {
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+
+  const executarAcao = async (acao: () => Promise<unknown>) => {
     setLoadingAction(true);
+    setErroAcao(null);
     try {
+      await acao();
+    } catch (err) {
+      setErroAcao(err instanceof Error ? err.message : "Não foi possível concluir a ação.");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleToggleBloqueio = () =>
+    executarAcao(async () => {
       if (link.bloqueado_manualmente || cliente.status === "bloqueado") {
         await desbloquearLink(link.id);
       } else {
         await bloquearLink(link.id);
       }
       await onClienteAtualizado();
-    } finally {
-      setLoadingAction(false);
-    }
-  };
+    });
 
-  const handleProrrogar = async (minutos: number) => {
-    setLoadingAction(true);
-    try {
+  const handleProrrogar = (minutos: number) =>
+    executarAcao(async () => {
       await prorrogarLink(link.id, minutos);
       await onClienteAtualizado();
-    } finally {
-      setLoadingAction(false);
-    }
-  };
+    });
 
-  const handleExcluirLink = async () => {
-    setLoadingAction(true);
-    try {
+  const handleExcluirLink = () =>
+    executarAcao(async () => {
       await excluirLinkTemporario(link.id);
       await onClienteAtualizado();
       onVoltar();
-    } finally {
-      setLoadingAction(false);
-    }
-  };
+    });
 
   return (
     <div className="space-y-6">
@@ -164,16 +167,19 @@ export function ClientFocusedView({
         temComprovantePix={temComprovante}
         loadingAction={loadingAction}
         onBack={onVoltar}
-        onTogglePix={async (pago) => {
-          setLoadingAction(true);
-          try {
+        onTogglePix={(pago) =>
+          executarAcao(async () => {
             await atualizarStatusPix(cliente.id, pago);
             await onClienteAtualizado();
-          } finally {
-            setLoadingAction(false);
-          }
-        }}
+          })
+        }
       />
+
+      {erroAcao && (
+        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+          {erroAcao}
+        </div>
+      )}
 
       {/* Navegacao sequencial numerada de 1 a 9 com fontes aumentadas e scroll suave */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2.5 border-b border-border/60 scrollbar-thin">
@@ -204,13 +210,15 @@ export function ClientFocusedView({
             onProrrogar={handleProrrogar}
             onToggleBloqueio={handleToggleBloqueio}
             onExcluir={handleExcluirLink}
-            onSalvarLinkOnboarding={async (url) => {
-              await atualizarProjeto(cliente.id, {
-                nome_completo: cliente.nome_completo,
-                link_onboarding_form: url || null,
-              });
-              await onClienteAtualizado();
-            }}
+            onSalvarLinkOnboarding={(url) =>
+              executarAcao(async () => {
+                await atualizarProjeto(cliente.id, {
+                  nome_completo: cliente.nome_completo,
+                  link_onboarding_form: url || null,
+                });
+                await onClienteAtualizado();
+              })
+            }
           />
         )}
 
@@ -218,10 +226,12 @@ export function ClientFocusedView({
           <WorkspacePresentationPanel
             apresentacaoUrl={cliente.apresentacao_pdf_url}
             apresentacaoNome={cliente.apresentacao_pdf_nome}
-            onUpload={async (f) => {
-              await atualizarApresentacaoCliente(cliente.id, f);
-              await onClienteAtualizado();
-            }}
+            onUpload={(f) =>
+              executarAcao(async () => {
+                await atualizarApresentacaoCliente(cliente.id, f);
+                await onClienteAtualizado();
+              })
+            }
           />
         )}
 
@@ -231,6 +241,9 @@ export function ClientFocusedView({
             clienteNome={cliente.nome_completo}
             pixPago={Boolean(cliente.pix_pago)}
             whatsapp={cliente.whatsapp}
+            comprovanteRef={cliente.comprovante_pix_path}
+            comprovanteNome={cliente.comprovante_pix_nome}
+            comprovanteEnviadoEm={cliente.comprovante_pix_enviado_em}
             onStatusAlterado={async () => {
               await onClienteAtualizado();
             }}
@@ -251,10 +264,12 @@ export function ClientFocusedView({
             clienteNome={cliente.nome_completo}
             contrato={cliente.contratos?.[0] || null}
             modelos={modelos}
-            onEmitirContrato={async (modId, val, dia) => {
-              await emitirEEnviarContrato(cliente.id, modId || null, val, dia);
-              await onClienteAtualizado();
-            }}
+            onEmitirContrato={(modId, val, dia) =>
+              executarAcao(async () => {
+                await emitirEEnviarContrato(cliente.id, modId || null, val, dia);
+                await onClienteAtualizado();
+              })
+            }
           />
         )}
 

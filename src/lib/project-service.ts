@@ -1,6 +1,9 @@
-import { supabase, isSupabaseConfigured } from "./supabase-client";
+import { supabase, isSupabaseConfigured, isModoDemo } from "./supabase-client";
 import { MOCK_CLIENTES } from "./mock-data";
 import type { ClienteOnboarding } from "./mock-data";
+import type { Database } from "../types/database.types";
+import { montarRefStorage } from "./storage-refs";
+import { mensagemDeErro } from "./erros";
 
 function getStorage<T>(key: string, def: T): T {
   try {
@@ -17,54 +20,48 @@ function setStorage(key: string, val: unknown) {
   } catch {}
 }
 
+function exigirSupabaseOuDemo(): boolean {
+  if (isSupabaseConfigured) return true;
+  if (isModoDemo) return false;
+  throw new Error("SUPABASE_NAO_CONFIGURADO");
+}
+
+function baseUrlLinks() {
+  if (typeof window === "undefined") return "http://localhost:8080";
+  return window.location.port === "8081" ? "http://localhost:8080" : window.location.origin;
+}
+
 export async function listarClientes(): Promise<ClienteOnboarding[]> {
-  let clientes: ClienteOnboarding[] = [];
-
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from("clientes_onboarding")
-        .select("*, links_temporarios(*), dados_cadastrais_cliente(*), contratos(*)")
-        .order("created_at", { ascending: false });
-      clientes = !error && data && data.length > 0 ? (data as unknown as ClienteOnboarding[]) : [...MOCK_CLIENTES];
-    } catch {
-      clientes = [...MOCK_CLIENTES];
-    }
-  } else {
-    clientes = [...MOCK_CLIENTES];
+  if (exigirSupabaseOuDemo()) {
+    const { data, error } = await supabase
+      .from("clientes_onboarding")
+      .select("*, links_temporarios(*), dados_cadastrais_cliente(*), contratos(*)")
+      .order("created_at", { ascending: false })
+      .order("created_at", { referencedTable: "links_temporarios", ascending: false })
+      .order("created_at", { referencedTable: "contratos", ascending: false });
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível carregar os clientes."));
+    return (data || []) as unknown as ClienteOnboarding[];
   }
 
-  if (typeof window !== "undefined") {
-    const locais = getStorage<ClienteOnboarding[]>("wrmax_clientes_locais", []);
-    const locaisValidos: ClienteOnboarding[] = [];
+  return listarClientesModoDemo();
+}
 
-    locais.forEach((loc) => {
-      const duplicadoSupabase =
-        isSupabaseConfigured &&
-        clientes.some(
-          (c) => c.id === loc.id || c.nome_completo?.trim().toLowerCase() === loc.nome_completo?.trim().toLowerCase()
-        );
-      const duplicadoNaLista = clientes.some((c) => c.id === loc.id);
+function listarClientesModoDemo(): ClienteOnboarding[] {
+  let clientes: ClienteOnboarding[] = [...MOCK_CLIENTES];
+  if (typeof window === "undefined") return clientes;
 
-      if (!duplicadoSupabase && !duplicadoNaLista) {
-        clientes.unshift(loc);
-        locaisValidos.push(loc);
-      }
-    });
+  const locais = getStorage<ClienteOnboarding[]>("wrmax_clientes_locais", []);
+  locais.forEach((loc) => {
+    if (!clientes.some((c) => c.id === loc.id)) clientes.unshift(loc);
+  });
 
-    if (isSupabaseConfigured && locaisValidos.length !== locais.length) {
-      setStorage("wrmax_clientes_locais", locaisValidos);
-    }
+  const editados = getStorage<Record<string, any>>("wrmax_clientes_editados", {});
+  clientes = clientes.map((c) => (editados[c.id] ? { ...c, ...editados[c.id] } : c));
 
-    const editados = getStorage<Record<string, any>>("wrmax_clientes_editados", {});
-    clientes = clientes.map((c) => (editados[c.id] ? { ...c, ...editados[c.id] } : c));
-
-    const excluidos = getStorage<string[]>("wrmax_clientes_excluidos", []);
-    if (excluidos.length > 0) {
-      clientes = clientes.filter((c) => !excluidos.includes(c.id));
-    }
+  const excluidos = getStorage<string[]>("wrmax_clientes_excluidos", []);
+  if (excluidos.length > 0) {
+    clientes = clientes.filter((c) => !excluidos.includes(c.id));
   }
-
   return clientes;
 }
 
@@ -76,101 +73,70 @@ export async function criarClienteComLink(
   dataProgramacao?: string,
   linkOnboardingForm?: string
 ) {
-  let pdfUrl: string | null = null;
-  let pdfNome: string | null = null;
-  const isPort8081 = typeof window !== "undefined" && window.location.port === "8081";
-  const base = typeof window !== "undefined"
-    ? (isPort8081 ? "http://localhost:8080" : window.location.origin)
-    : "http://localhost:8080";
+  const base = baseUrlLinks();
 
+  if (exigirSupabaseOuDemo()) {
+    let pdfRef: string | null = null;
+    let pdfNome: string | null = null;
+
+    if (apresentacaoFile) {
+      const caminho = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.pdf`;
+      const { error: uploadError } = await supabase.storage
+        .from("apresentacoes-pdf")
+        .upload(caminho, apresentacaoFile, { contentType: "application/pdf" });
+      if (uploadError) throw new Error(mensagemDeErro(uploadError, "Falha no envio da apresentação em PDF."));
+      pdfRef = montarRefStorage("apresentacoes-pdf", caminho);
+      pdfNome = apresentacaoFile.name;
+    }
+
+    const { data: cliente, error: cliError } = await supabase
+      .from("clientes_onboarding")
+      .insert({
+        nome_completo: nome,
+        email: email || null,
+        whatsapp: whatsapp || null,
+        status: "link_ativo",
+        apresentacao_pdf_url: pdfRef,
+        apresentacao_pdf_nome: pdfNome,
+        link_onboarding_form: linkOnboardingForm || null,
+        data_programacao: dataProgramacao || null,
+      })
+      .select()
+      .single();
+    if (cliError || !cliente) throw new Error(mensagemDeErro(cliError, "Não foi possível cadastrar o cliente."));
+
+    const { data: link, error: linkError } = await supabase
+      .from("links_temporarios")
+      .insert({
+        cliente_id: cliente.id,
+        expira_em: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
+      })
+      .select()
+      .single();
+    if (linkError || !link) throw new Error(mensagemDeErro(linkError, "Cliente cadastrado, mas o link não foi gerado."));
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("wrmax:cliente_criado", { detail: { ...cliente, links_temporarios: [link] } })
+      );
+    }
+    return { clienteId: cliente.id, token: link.token, linkCompleto: `${base}/c/${link.token}` };
+  }
+
+  // Modo demo: cliente e link so existem neste navegador
   const novoId = "cli-" + Date.now();
   const novoToken = "tok_" + Math.random().toString(36).substring(2, 10);
-  const dataCriacao = new Date().toISOString();
-
-  if (apresentacaoFile) {
-    if (isSupabaseConfigured) {
-      try {
-        const fileExt = apresentacaoFile.name.split(".").pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from("apresentacoes-pdf")
-          .upload(fileName, apresentacaoFile, { contentType: "application/pdf", upsert: true });
-        if (!uploadError) {
-          const { data: publicUrlData } = supabase.storage.from("apresentacoes-pdf").getPublicUrl(fileName);
-          pdfUrl = publicUrlData.publicUrl;
-          pdfNome = apresentacaoFile.name;
-        } else {
-          console.error("Falha no upload da apresentacao:", uploadError);
-        }
-      } catch (err) {
-        console.warn("Upload de PDF falhou:", err);
-      }
-    } else {
-      try {
-        pdfUrl = URL.createObjectURL(apresentacaoFile);
-        pdfNome = apresentacaoFile.name;
-      } catch {}
-    }
-  }
-
-  if (isSupabaseConfigured) {
-    try {
-      const { data: cliente, error: cliError } = await supabase
-        .from("clientes_onboarding")
-        .insert({
-          nome_completo: nome,
-          email: email || null,
-          whatsapp: whatsapp || null,
-          status: "link_ativo",
-          apresentacao_pdf_url: pdfUrl,
-          apresentacao_pdf_nome: pdfNome,
-          link_onboarding_form: linkOnboardingForm || null,
-        })
-        .select()
-        .single();
-
-      if (!cliError && cliente) {
-        const { data: link, error: linkError } = await supabase
-          .from("links_temporarios")
-          .insert({
-            cliente_id: cliente.id,
-            expira_em: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
-          })
-          .select()
-          .single();
-
-        if (!linkError && link) {
-          if (dataProgramacao && typeof window !== "undefined") {
-            const editados = getStorage<Record<string, any>>("wrmax_clientes_editados", {});
-            editados[cliente.id] = { ...(editados[cliente.id] || {}), data_programacao: dataProgramacao };
-            setStorage("wrmax_clientes_editados", editados);
-          }
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(
-              new CustomEvent("wrmax:cliente_criado", {
-                detail: { ...cliente, links_temporarios: [link], data_programacao: dataProgramacao || null },
-              })
-            );
-          }
-          return { clienteId: cliente.id, token: link.token, linkCompleto: `${base}/c/${link.token}` };
-        }
-      }
-    } catch (err) {
-      console.warn("Supabase insert fallthrough para modo local:", err);
-    }
-  }
-
   const novoCliente: ClienteOnboarding = {
     id: novoId,
     nome_completo: nome,
     email: email || null,
     whatsapp: whatsapp || null,
     status: "link_ativo",
-    apresentacao_pdf_url: pdfUrl,
-    apresentacao_pdf_nome: pdfNome,
+    apresentacao_pdf_url: apresentacaoFile ? URL.createObjectURL(apresentacaoFile) : null,
+    apresentacao_pdf_nome: apresentacaoFile?.name || null,
     link_onboarding_form: linkOnboardingForm || null,
     pix_pago: false,
-    created_at: dataCriacao,
+    created_at: new Date().toISOString(),
     data_programacao: dataProgramacao || null,
     links_temporarios: [{
       id: `link-${Date.now()}`,
@@ -202,34 +168,30 @@ export async function atualizarProjeto(
     link_onboarding_form?: string | null;
   }
 ) {
-  if (isSupabaseConfigured) {
-    try {
-      const payload: Record<string, any> = {
-        nome_completo: dados.nome_completo,
-        email: dados.email,
-        whatsapp: dados.whatsapp,
-      };
-      if (dados.link_onboarding_form !== undefined) {
-        payload.link_onboarding_form = dados.link_onboarding_form;
-      }
-      await supabase.from("clientes_onboarding").update(payload).eq("id", clienteId);
-    } catch (err) {
-      console.warn("Supabase update falhou:", err);
-    }
-  }
+  if (exigirSupabaseOuDemo()) {
+    const payload: Database["public"]["Tables"]["clientes_onboarding"]["Update"] = {
+      nome_completo: dados.nome_completo,
+    };
+    if (dados.email !== undefined) payload["email"] = dados.email;
+    if (dados.whatsapp !== undefined) payload["whatsapp"] = dados.whatsapp;
+    if (dados.data_programacao !== undefined) payload["data_programacao"] = dados.data_programacao;
+    if (dados.link_onboarding_form !== undefined) payload["link_onboarding_form"] = dados.link_onboarding_form;
 
-  if (typeof window !== "undefined") {
+    const { error } = await supabase.from("clientes_onboarding").update(payload).eq("id", clienteId);
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível salvar as alterações."));
+  } else if (typeof window !== "undefined") {
     const locais = getStorage<ClienteOnboarding[]>("wrmax_clientes_locais", []);
     const idx = locais.findIndex((c) => c.id === clienteId);
     if (idx >= 0) {
-      locais[idx] = { ...locais[idx], ...dados };
+      locais[idx] = { ...locais[idx]!, ...dados };
       setStorage("wrmax_clientes_locais", locais);
     }
-
     const editados = getStorage<Record<string, any>>("wrmax_clientes_editados", {});
     editados[clienteId] = { ...(editados[clienteId] || {}), ...dados };
     setStorage("wrmax_clientes_editados", editados);
+  }
 
+  if (typeof window !== "undefined") {
     window.dispatchEvent(
       new CustomEvent("wrmax:projeto_atualizado", { detail: { clienteId, dados } })
     );
@@ -239,8 +201,24 @@ export async function atualizarProjeto(
 }
 
 export async function excluirProjeto(clienteId: string) {
-  let tokensRevogados: string[] = [];
+  if (exigirSupabaseOuDemo()) {
+    // links, cadastro e contratos saem em cascata (ON DELETE CASCADE)
+    const { data: links } = await supabase
+      .from("links_temporarios")
+      .select("token")
+      .eq("cliente_id", clienteId);
+    const { error } = await supabase.from("clientes_onboarding").delete().eq("id", clienteId);
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível excluir o cliente."));
+    const tokensRevogados = (links || []).map((l) => l.token);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("wrmax:projeto_excluido", { detail: { clienteId, tokens: tokensRevogados } })
+      );
+    }
+    return { sucesso: true, tokensRevogados };
+  }
 
+  let tokensRevogados: string[] = [];
   if (typeof window !== "undefined") {
     const locais = getStorage<ClienteOnboarding[]>("wrmax_clientes_locais", []);
     const cliEncontrado = locais.find((c) => c.id === clienteId);
@@ -274,17 +252,6 @@ export async function excluirProjeto(clienteId: string) {
     window.dispatchEvent(
       new CustomEvent("wrmax:projeto_excluido", { detail: { clienteId, tokens: tokensRevogados } })
     );
-  }
-
-  if (isSupabaseConfigured) {
-    try {
-      await supabase.from("links_temporarios").delete().eq("cliente_id", clienteId);
-      await supabase.from("contratos").delete().eq("cliente_id", clienteId);
-      await supabase.from("dados_cadastrais_cliente").delete().eq("cliente_id", clienteId);
-      await supabase.from("clientes_onboarding").delete().eq("id", clienteId);
-    } catch (err) {
-      console.warn("Supabase delete falhou:", err);
-    }
   }
 
   return { sucesso: true, tokensRevogados };
