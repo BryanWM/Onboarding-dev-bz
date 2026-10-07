@@ -1,0 +1,229 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+export type ClienteStatus =
+  | "pendente_link"
+  | "link_ativo"
+  | "aguardando_cadastro"
+  | "cadastro_recebido"
+  | "contrato_gerado"
+  | "contrato_enviado"
+  | "assinado"
+  | "concluido"
+  | "expirado"
+  | "bloqueado";
+
+export type ContratoStatusEnvio = "rascunho" | "gerado" | "enviado_ao_cliente" | "assinado";
+
+export interface Database {
+  public: {
+    Tables: {
+      clientes_onboarding: {
+        Row: {
+          id: string;
+          nome_completo: string;
+          email: string | null;
+          whatsapp: string | null;
+          status: ClienteStatus;
+          apresentacao_pdf_url: string | null;
+          apresentacao_pdf_nome: string | null;
+          pix_pago: boolean;
+          pix_pago_em: string | null;
+          observacoes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          nome_completo: string;
+          email?: string | null;
+          whatsapp?: string | null;
+          status?: ClienteStatus;
+          apresentacao_pdf_url?: string | null;
+          apresentacao_pdf_nome?: string | null;
+          pix_pago?: boolean;
+          pix_pago_em?: string | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["clientes_onboarding"]["Insert"]>;
+      };
+      links_temporarios: {
+        Row: {
+          id: string;
+          cliente_id: string;
+          token: string;
+          expira_em: string;
+          bloqueado_manualmente: boolean;
+          bloqueado_em: string | null;
+          motivo_bloqueio: string | null;
+          acessos_count: number;
+          ultimo_acesso_em: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          cliente_id: string;
+          token?: string;
+          expira_em?: string;
+          bloqueado_manualmente?: boolean;
+          bloqueado_em?: string | null;
+          motivo_bloqueio?: string | null;
+          acessos_count?: number;
+          ultimo_acesso_em?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["links_temporarios"]["Insert"]>;
+      };
+      dados_cadastrais_cliente: {
+        Row: {
+          id: string;
+          cliente_id: string;
+          razao_social: string;
+          nome_fantasia: string | null;
+          cnpj: string;
+          inscricao_estadual: string | null;
+          cep: string;
+          logradouro: string;
+          numero: string;
+          complemento: string | null;
+          bairro: string;
+          cidade: string;
+          uf: string;
+          representante_nome: string;
+          representante_cpf: string;
+          representante_rg: string | null;
+          representante_profissao: string | null;
+          representante_estado_civil: string | null;
+          email_financeiro: string;
+          telefone_financeiro: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          cliente_id: string;
+          razao_social: string;
+          nome_fantasia?: string | null;
+          cnpj: string;
+          inscricao_estadual?: string | null;
+          cep: string;
+          logradouro: string;
+          numero: string;
+          complemento?: string | null;
+          bairro: string;
+          cidade: string;
+          uf: string;
+          representante_nome: string;
+          representante_cpf: string;
+          representante_rg?: string | null;
+          representante_profissao?: string | null;
+          representante_estado_civil?: string | null;
+          email_financeiro: string;
+          telefone_financeiro: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["dados_cadastrais_cliente"]["Insert"]>;
+      };
+      modelos_contrato: {
+        Row: {
+          id: string;
+          titulo: string;
+          descricao: string | null;
+          template_storage_path: string;
+          variaveis_tags: Json;
+          ativo: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          titulo: string;
+          descricao?: string | null;
+          template_storage_path: string;
+          variaveis_tags?: Json;
+          ativo?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["modelos_contrato"]["Insert"]>;
+      };
+      contratos: {
+        Row: {
+          id: string;
+          cliente_id: string;
+          modelo_id: string | null;
+          valor_mensal: number;
+          dia_vencimento: number;
+          status_envio: ContratoStatusEnvio;
+          liberado_para_cliente: boolean;
+          docx_storage_path: string | null;
+          docx_assinado_storage_path: string | null;
+          enviado_ao_cliente_em: string | null;
+          assinado_em: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          cliente_id: string;
+          modelo_id?: string | null;
+          valor_mensal: number;
+          dia_vencimento: number;
+          status_envio?: ContratoStatusEnvio;
+          liberado_para_cliente?: boolean;
+          docx_storage_path?: string | null;
+          docx_assinado_storage_path?: string | null;
+          enviado_ao_cliente_em?: string | null;
+          assinado_em?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["contratos"]["Insert"]>;
+      };
+    };
+    Functions: {
+      validar_link_token: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      submeter_cadastro_cliente: {
+        Args: { p_token: string; p_dados: Json };
+        Returns: Json;
+      };
+      prorrogar_link: {
+        Args: { p_link_id: string; p_minutos: number };
+        Returns: Json;
+      };
+      bloquear_link: {
+        Args: { p_link_id: string; p_motivo?: string };
+        Returns: Json;
+      };
+      desbloquear_link: {
+        Args: { p_link_id: string };
+        Returns: Json;
+      };
+      excluir_link_temporario: {
+        Args: { p_link_id: string };
+        Returns: Json;
+      };
+      atualizar_status_pix: {
+        Args: { p_cliente_id: string; p_pago: boolean };
+        Returns: Json;
+      };
+      emitir_e_enviar_contrato: {
+        Args: {
+          p_cliente_id: string;
+          p_modelo_id?: string | null;
+          p_valor_mensal: number;
+          p_dia_vencimento: number;
+          p_docx_url?: string | null;
+        };
+        Returns: Json;
+      };
+    };
+  };
+}
