@@ -62,7 +62,7 @@ export function OnboardingFormCard() {
             href={ONBOARDING_FORM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="metal-button inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-bold text-primary-foreground shadow-lg transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="metal-button inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold text-primary-foreground shadow-lg transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <ExternalLink className="size-4" />
             Abrir formulário
@@ -84,7 +84,7 @@ export function PixPanel() {
       <div className="metal-panel p-5">
         <div className="mb-4 flex items-center gap-3">
           <QrCode className="text-primary" />
-          <h2 className="font-semibold">Dados PIX</h2>
+          <h2 className="font-bold">Dados PIX</h2>
         </div>
         <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Chave PIX</p>
         <div className="mt-2 flex items-center justify-between rounded-md border border-border bg-input/20 p-3 text-sm">
@@ -122,9 +122,9 @@ export function PixQrImporter() {
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
           <QrCode className="size-5 text-primary" />
-          <h2 className="font-semibold">QR Code PIX</h2>
+          <h2 className="font-bold">QR Code PIX</h2>
         </div>
-        <span className="rounded-full border border-primary/30 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-primary">
+        <span className="rounded-full border border-primary/30 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-primary">
           Fixado
         </span>
       </div>
@@ -159,7 +159,7 @@ export function FileImporter({ title, hint, accept }: { title: string; hint: str
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
           <FileText className="size-5 text-primary" />
-          <h2 className="font-semibold">{title}</h2>
+          <h2 className="font-bold">{title}</h2>
         </div>
         {file && (
           <Button size="icon" variant="ghost" aria-label="Remover arquivo" onClick={() => setFile(null)}>

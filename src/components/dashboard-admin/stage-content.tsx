@@ -37,7 +37,7 @@ export function StageContent({
     <div className="space-y-5">
       {items.length > 0 && (
         <div className="metal-panel flex items-center gap-4 p-4">
-          <div className="font-mono text-3xl font-bold">
+          <div className="font-mono text-3xl">
             <span className="metal-text">{done}</span>
             <span className="text-muted-foreground">/{items.length}</span>
           </div>

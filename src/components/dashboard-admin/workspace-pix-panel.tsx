@@ -118,7 +118,7 @@ export function WorkspacePixPanel({
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-foreground">
-              Gestão Financeira & Comprovante PIX (Etapa 3)
+              Gestão Financeira & Comprovante PIX (Etapa 2)
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Confira os dados bancários e acesse o comprovante enviado pelo cliente {clienteNome}.
@@ -131,7 +131,7 @@ export function WorkspacePixPanel({
             type="button"
             onClick={handleToggleStatus}
             disabled={alterandoStatus}
-            className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all ${
+            className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer shadow-md transition-all ${
               pixPago
                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
                 : "border border-border bg-secondary hover:bg-secondary/80 text-foreground"
@@ -152,7 +152,7 @@ export function WorkspacePixPanel({
               Comprovante Enviado pelo Cliente
             </h3>
             {comprovante ? (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                 RECEBIDO
               </span>
             ) : (
@@ -166,7 +166,7 @@ export function WorkspacePixPanel({
             <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-sm text-foreground truncate">{comprovante.nome}</p>
+                  <p className="font-semibold text-sm text-foreground truncate">{comprovante.nome}</p>
                   {comprovante.data && (
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Enviado em: {new Date(comprovante.data).toLocaleString("pt-BR")}
@@ -184,7 +184,7 @@ export function WorkspacePixPanel({
                     download={comprovante.nome}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="metal-button p-2.5 rounded-lg text-primary-foreground cursor-pointer shrink-0 shadow-sm"
+                    className="glass-button p-2.5 rounded-lg cursor-pointer shrink-0"
                     title="Baixar Comprovante"
                   >
                     <Download className="size-4" />
@@ -227,7 +227,7 @@ export function WorkspacePixPanel({
                 type="button"
                 onClick={handleUploadManual}
                 disabled={!arquivoManual || salvandoManual}
-                className="metal-button px-4 py-2 rounded-lg text-xs font-bold text-primary-foreground flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="glass-button px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {salvandoManual ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
                 <span>{salvandoManual ? "Salvando..." : "Anexar"}</span>

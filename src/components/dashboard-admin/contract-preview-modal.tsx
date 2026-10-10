@@ -67,16 +67,16 @@ export function ContractPreviewModal({
 
         <div className="flex-1 overflow-y-auto space-y-5 pr-1 font-sans text-sm text-foreground/90 leading-relaxed scrollbar-thin">
           <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 text-center space-y-1">
-            <span className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-primary">
               Instrumento Particular de Prestação de Serviços
             </span>
-            <h4 className="font-bold text-base text-foreground">
+            <h4 className="font-display font-semibold text-base text-foreground">
               CONTRATO DE MARKETING E PERFORMANCE DIGITAL
             </h4>
           </div>
 
           <div className="space-y-2 p-4 rounded-xl border border-border bg-secondary/20">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block">
+            <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground block">
               1. Qualificação das Partes
             </span>
             <p className="text-xs leading-relaxed">
@@ -92,20 +92,20 @@ export function ContractPreviewModal({
               <DollarSign className="size-5 text-emerald-400 shrink-0" />
               <div>
                 <span className="text-[10px] font-mono uppercase text-muted-foreground block">Investimento Mensal</span>
-                <span className="font-bold text-base text-foreground font-mono">{formatCurrency(valorMensal)}</span>
+                <span className="text-base text-foreground font-mono">{formatCurrency(valorMensal)}</span>
               </div>
             </div>
             <div className="p-3.5 rounded-lg border border-border bg-secondary/30 flex items-center gap-3">
               <Calendar className="size-5 text-primary shrink-0" />
               <div>
                 <span className="text-[10px] font-mono uppercase text-muted-foreground block">Dia de Vencimento</span>
-                <span className="font-bold text-base text-foreground font-mono">Todo dia {diaVencimento}</span>
+                <span className="text-base text-foreground font-mono">Todo dia {diaVencimento}</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
-            <h5 className="font-bold text-foreground text-xs uppercase font-mono">2. Resumo das Cláusulas Gerais</h5>
+            <h5 className="font-display  text-foreground text-xs uppercase font-mono">2. Resumo das Cláusulas Gerais</h5>
             <p>
               <strong>Cláusula 1ª (Objeto):</strong> O presente instrumento tem por objeto a prestação de serviços continuados de assessoria de marketing, branding, planejamento estratégico e produção de conteúdos de alta performance pela CONTRATADA em favor da CONTRATANTE.
             </p>
@@ -138,7 +138,7 @@ export function ContractPreviewModal({
               <a
                 href={docxUrl}
                 download={`Contrato_WRMAX_${clienteNome.replace(/\s+/g, "_")}.docx`}
-                className="metal-button px-4 py-2 rounded-lg text-xs font-bold text-primary-foreground flex items-center gap-1.5 cursor-pointer shadow-md"
+                className="metal-button px-4 py-2 rounded-lg text-xs font-semibold text-primary-foreground flex items-center gap-1.5 cursor-pointer shadow-md"
               >
                 <Download className="size-3.5" />
                 <span>Baixar Word (.docx)</span>

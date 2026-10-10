@@ -30,38 +30,55 @@
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
   --color-overlay: var(--overlay);
-  --shadow-metal: 0 8px 30px var(--metal-shadow);
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-ouro: var(--ouro);
+  --shadow-metal: 0 8px 24px var(--metal-shadow);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Identidade da landing WRMax (rework-landing-page): fundo quase preto
+   quente, superficies solidas com borda finissima, texto creme.
+   DOURADO EQUILIBRADO: o ouro cheio (gradiente) fica so na acao principal,
+   tag, palavra de destaque e progresso; --primary e um dourado champanhe
+   suave para icones, estados ativos, bordas de foco e avatares. */
 :root {
-  --radius: 0.5rem;
-  --background: oklch(8.5% 0.008 85);
-  --foreground: oklch(94% 0.015 88);
-  --card: oklch(12.5% 0.012 82);
-  --card-foreground: oklch(94% 0.015 88);
-  --popover: oklch(13% 0.012 82);
-  --popover-foreground: oklch(94% 0.015 88);
-  --primary: oklch(75% 0.135 84);
-  --primary-foreground: oklch(11% 0.014 82);
-  --secondary: oklch(20% 0.018 82);
-  --secondary-foreground: oklch(90% 0.018 88);
-  --muted: oklch(17% 0.012 82);
-  --muted-foreground: oklch(62% 0.02 84);
-  --accent: oklch(19% 0.025 82);
-  --accent-foreground: oklch(94% 0.015 88);
-  --destructive: oklch(62% 0.2 27);
-  --destructive-foreground: oklch(98% 0 0);
-  --border: oklch(26% 0.035 82 / 0.72);
-  --input: oklch(21% 0.025 82);
-  --ring: oklch(75% 0.135 84);
-  --sidebar: oklch(6.5% 0.005 85);
-  --overlay: oklch(2% 0 0 / 0.8);
-  --metal-shadow: oklch(65% 0.14 80 / 0.16);
-  --metal-a: oklch(56% 0.115 79);
-  --metal-b: oklch(88% 0.12 91);
-  --metal-c: oklch(64% 0.14 77);
+  --radius: 0.625rem;
+  --background: #0a0907;
+  --foreground: #f1e8d6;
+  --card: #15130e;
+  --card-foreground: #f1e8d6;
+  --popover: #15130e;
+  --popover-foreground: #f1e8d6;
+  --primary: #d4b06a;
+  --primary-foreground: #1a1408;
+  --secondary: #1d1a13;
+  --secondary-foreground: #f1e8d6;
+  --muted: #15130e;
+  --muted-foreground: #ac9f84;
+  --accent: #1d1a13;
+  --accent-foreground: #f1e8d6;
+  --destructive: #ff6b8a;
+  --destructive-foreground: #1a1408;
+  --border: rgba(232, 199, 122, 0.14);
+  --input: #100e0a;
+  --ring: rgba(232, 199, 122, 0.55);
+  --sidebar: #0a0907;
+  --overlay: rgba(4, 3, 2, 0.8);
+  /* dourado: acento pontual */
+  --ouro: #e8c77a;
+  --metal-shadow: rgba(201, 151, 58, 0.18);
+  --grad-ouro: linear-gradient(100deg, #8a6420 0%, #d4a647 30%, #f8e6b0 50%, #d4a647 70%, #8a6420 100%);
+  /* superficies */
+  --linha: rgba(232, 199, 122, 0.11);
+  --linha-2: rgba(232, 199, 122, 0.24);
+  --superficie: rgba(21, 19, 14, 0.85);
+  --superficie-2: #1d1a13;
+  --campo: #100e0a;
+  --glow: rgba(201, 151, 58, 0.16);
+  --glow-2: rgba(166, 120, 40, 0.11);
+  --ponto: rgba(232, 199, 122, 0.55);
+  --ponto-linha: rgba(232, 199, 122, 0.12);
 }
 
 @keyframes shine {
@@ -76,111 +93,123 @@
   }
 }
 
+/* Palavra de destaque em dourado (uma por tela, como no titulo da landing) */
 @utility metal-text {
-  background: linear-gradient(
-    105deg,
-    var(--metal-a),
-    var(--metal-b) 44%,
-    var(--metal-c) 72%,
-    var(--metal-b)
-  );
+  background: var(--grad-ouro);
   background-size: 200% 100%;
   color: transparent;
   -webkit-background-clip: text;
   background-clip: text;
-  animation: shine 8s ease-in-out infinite;
 }
 
-/* Botao Metalico - Estilo e Animacao Natural WRMax */
+/* Botao da ACAO PRINCIPAL da tela (dourado). Acoes repetidas ou
+   secundarias usam glass-button. */
 .metal-button {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    var(--metal-a) 0%,
-    color-mix(in oklab, var(--metal-b) 85%, var(--metal-a) 15%) 48%,
-    var(--metal-c) 72%,
-    var(--metal-a) 100%
-  );
+  background: var(--grad-ouro);
+  background-size: 200% 100%;
   color: var(--primary-foreground);
-  box-shadow:
-    0 2px 8px color-mix(in oklab, var(--metal-a) 25%, transparent),
-    inset 0 1px 1px oklch(100% 0 0 / 0.35),
-    inset 0 -1px 2px oklch(0% 0 0 / 0.2);
-  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
-              filter 0.18s ease,
-              box-shadow 0.18s ease;
-}
-
-.metal-button::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -25%;
-  width: 150%;
-  height: 200%;
-  background: linear-gradient(
-    108deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.05) 35%,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0.05) 65%,
-    transparent 80%
-  );
-  transform: translateX(-100%);
-  animation: natural-metal-shine 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  pointer-events: none;
-  z-index: 1;
-}
-
-@keyframes natural-metal-shine {
-  0% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  6% {
-    opacity: 1;
-  }
-  42% {
-    transform: translateX(100%);
-    opacity: 1;
-  }
-  48%, 100% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
+  box-shadow: 0 8px 24px var(--metal-shadow);
+  transition: background-position 0.4s ease, transform 0.18s ease, filter 0.18s ease;
 }
 
 .metal-button:hover {
-  filter: brightness(1.06);
-  box-shadow:
-    0 4px 16px color-mix(in oklab, var(--metal-b) 35%, transparent),
-    inset 0 1px 1.5px oklch(100% 0 0 / 0.45);
+  background-position: 100% 0;
 }
 
 .metal-button:active {
   transform: scale(0.985);
-  filter: brightness(0.97);
 }
 
+.metal-button:disabled {
+  background: var(--superficie-2);
+  color: var(--muted-foreground);
+  box-shadow: none;
+  border: 1px solid var(--linha-2);
+}
+
+/* Painel / cartao: superficie solida com borda finissima */
 @utility metal-panel {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: linear-gradient(
-    145deg,
-    color-mix(in oklab, var(--card) 96%, var(--primary) 4%),
-    var(--card)
-  );
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklab, var(--primary) 8%, transparent),
-    0 18px 45px oklch(2% 0 0 / 0.24);
+  border: 1px solid var(--linha);
+  border-radius: 18px;
+  background: var(--superficie);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
+/* Bloco interno (dentro de um painel) */
+@utility glass-soft {
+  border: 1px solid var(--linha);
+  background: var(--campo);
+}
+
+/* Botao secundario */
+@utility glass-button {
+  border: 1px solid var(--linha-2);
+  background: var(--card);
+  color: var(--foreground);
+  transition: background 0.18s ease, border-color 0.18s ease;
+  &:hover {
+    background: var(--superficie-2);
+    border-color: rgba(232, 199, 122, 0.5);
+  }
+}
+
+/* Estado ativo/selecionado em dourado suave (filtros, chips, avatares) */
+@utility chip-ouro {
+  border: 1px solid rgba(232, 199, 122, 0.35);
+  background: rgba(232, 199, 122, 0.1);
+  color: var(--ouro);
+}
+
+/* Etiqueta mono de secao (detalhe dourado) */
+@utility tag-ouro {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ouro);
+  border: 1px solid rgba(232, 199, 122, 0.3);
+  background: rgba(232, 199, 122, 0.06);
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+
+/* Rotulo mono neutro */
+@utility rotulo {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Barra de progresso dourada */
 @utility metal-fill {
-  background: linear-gradient(90deg, var(--metal-a), var(--metal-b), var(--metal-c));
+  background: var(--grad-ouro);
   background-size: 180% 100%;
-  animation: shine 4s linear infinite;
+}
+
+/* Etapa atual destacada na Central do cliente (borda dourada suave) */
+.etapa-atual > section {
+  border-color: rgba(232, 199, 122, 0.4);
+  box-shadow: 0 0 0 1px rgba(232, 199, 122, 0.08), 0 12px 40px rgba(201, 151, 58, 0.08);
+}
+
+/* Central: ouro cheio so na etapa atual; nas outras o botao fica em contorno dourado */
+.central-etapas > div:not(.etapa-atual) .metal-button:not(:disabled) {
+  background: rgba(232, 199, 122, 0.06);
+  color: var(--ouro);
+  border: 1px solid rgba(232, 199, 122, 0.35);
+  box-shadow: none;
+}
+.central-etapas > div:not(.etapa-atual) .metal-button:not(:disabled):hover {
+  background: rgba(232, 199, 122, 0.12);
+  border-color: rgba(232, 199, 122, 0.55);
 }
 
 @keyframes stage-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -195,5 +224,50 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-weight: 400;
+  }
+
+  /* Tipografia (pesos carregados em __root.tsx):
+     Sora      800 titulo do topo (h1) | 700 secoes e numeros (h2, h3) | 600 subtitulos (h4-h6)
+     Inter     400 texto | 500 apoio | 600 botoes, abas e chips
+     JetBrains 400 etiquetas e numeracoes | 600 titulos de rodape */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  h1 {
+    font-weight: 800;
+  }
+  h2,
+  h3 {
+    font-weight: 700;
+  }
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+  }
+
+  button,
+  [role="tab"],
+  label {
+    font-family: var(--font-sans);
+  }
+  button,
+  [role="tab"] {
+    font-weight: 600;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+    font-weight: 400;
   }
 }

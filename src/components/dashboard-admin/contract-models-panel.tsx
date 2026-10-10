@@ -92,7 +92,7 @@ export function ContractModelsPanel() {
           <button
             type="button"
             onClick={() => setNovoModalOpen(true)}
-            className="metal-button h-9 px-4 rounded-lg text-xs font-bold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md"
+            className="metal-button h-9 px-4 rounded-lg text-xs font-semibold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md"
           >
             <PlusCircle className="size-3.5" />
             Novo Modelo
@@ -121,7 +121,7 @@ export function ContractModelsPanel() {
               title={desc}
             >
               <div className="flex items-center justify-between w-full">
-                <span className="font-mono text-[11px] font-bold text-primary group-hover:text-primary">
+                <span className="font-mono text-[11px] text-primary group-hover:text-primary">
                   {tag}
                 </span>
                 {copiedTag === tag ? (
@@ -233,7 +233,7 @@ export function ContractModelsPanel() {
                 <button
                   type="submit"
                   disabled={salvando || !titulo || !arquivo}
-                  className="metal-button px-4 py-2 rounded-lg text-xs font-bold text-primary-foreground disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  className="metal-button px-4 py-2 rounded-lg text-xs font-semibold text-primary-foreground disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
                   <Upload className="size-3" />
                   {salvando ? "Enviando..." : "Salvar Modelo"}

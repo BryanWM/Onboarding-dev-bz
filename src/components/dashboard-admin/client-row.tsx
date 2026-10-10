@@ -43,7 +43,7 @@ export function ClientRow({
       <td className="py-3 px-3">
         {link ? (
           <div className="space-y-0.5">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono ${
               isBloqueado
                 ? "bg-destructive/10 text-destructive border border-destructive/20"
                 : isExpirado
@@ -124,7 +124,7 @@ export function ClientRow({
           <button
             type="button"
             onClick={() => onSelect(cliente)}
-            className="metal-button h-7 px-3 rounded text-[11px] font-bold text-primary-foreground flex items-center gap-1 cursor-pointer shadow-sm ml-1"
+            className="metal-button h-7 px-3 rounded text-[11px] font-semibold text-primary-foreground flex items-center gap-1 cursor-pointer shadow-sm ml-1"
           >
             <span>Gerenciar</span>
             <ArrowRight className="size-3" />

@@ -185,7 +185,7 @@ export function ContractEmissionPanel() {
             <button
               type="submit"
               disabled={enviando || !selectedClienteId}
-              className="metal-button w-full h-10 px-4 rounded-lg text-xs font-bold text-primary-foreground disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 shadow-md"
+              className="metal-button w-full h-10 px-4 rounded-lg text-xs font-semibold text-primary-foreground disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 shadow-md"
             >
               <Send className="size-3.5" />
               {enviando ? "Processando envio..." : "Emitir e Enviar Contrato ao Cliente"}

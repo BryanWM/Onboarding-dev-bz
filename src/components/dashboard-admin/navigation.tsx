@@ -26,7 +26,7 @@ export function MobileHeader({ progress, onMenu }: { progress: number; onMenu: (
 export function Logo() {
   return (
     <div>
-      <div className="metal-text text-2xl font-black tracking-wide">WRMAX</div>
+      <div className="metal-text text-2xl font-semibold tracking-wide">WRMAX</div>
       <div className="mt-1 text-[8px] font-semibold uppercase tracking-[0.34em] text-muted-foreground">
         Onboarding · Alta performance
       </div>
@@ -158,11 +158,11 @@ export function StageHeader({ active }: { active: number }) {
   if (!stage) return null;
   return (
     <header className="max-w-4xl">
-      <div className="mb-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
+      <div className="mb-4 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-primary">
         <span className="h-px w-9 bg-primary" />
         Etapa {String(active).padStart(2, "0")}
       </div>
-      <h1 className="max-w-4xl text-4xl font-black leading-[0.98] sm:text-6xl lg:text-7xl">{stage.title}</h1>
+      <h1 className="max-w-4xl text-4xl font-extrabold leading-[0.98] sm:text-6xl lg:text-7xl">{stage.title}</h1>
       <p className="mt-5 max-w-3xl text-base leading-7 text-muted-foreground">{stage.description}</p>
     </header>
   );

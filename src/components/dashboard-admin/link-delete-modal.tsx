@@ -84,7 +84,7 @@ export function LinkDeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-xs font-bold text-destructive-foreground transition-colors flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-xs font-semibold text-destructive-foreground transition-colors flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
           >
             <Trash2 className="size-3.5" />
             {loading ? "Excluindo..." : "Confirmar Exclusão Definitiva"}

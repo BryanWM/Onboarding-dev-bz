@@ -112,7 +112,7 @@ export function ClientManagementPanel() {
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="metal-button h-9 px-4 rounded-lg text-xs font-bold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md"
+            className="metal-button h-9 px-4 rounded-lg text-xs font-semibold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md"
           >
             <PlusCircle className="size-3.5" />
             Novo Projeto

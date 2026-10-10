@@ -7,7 +7,7 @@ describe("Index route (Tela Institucional de Fallback)", () => {
     render(<InstitucionalScreen />);
 
     // Header title
-    expect(screen.getByText("WRMAX")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /WRMax/i })).toBeInTheDocument();
 
     // Headline solicitada na demanda.md
     expect(

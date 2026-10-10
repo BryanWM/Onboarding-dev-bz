@@ -65,7 +65,7 @@ export function ProjectDeleteModal({
         <div className="space-y-3 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-foreground/90">
           <p>
             Tem certeza de que deseja excluir permanentemente o projeto de{" "}
-            <strong className="text-foreground font-semibold font-mono text-destructive">
+            <strong className="text-foreground font-mono text-destructive">
               {clienteNome || "este cliente"}
             </strong>
             ?
@@ -88,7 +88,7 @@ export function ProjectDeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="px-5 py-2.5 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-colors disabled:opacity-50"
           >
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
             <span>{loading ? "Excluindo Projeto..." : "Sim, Excluir Projeto"}</span>

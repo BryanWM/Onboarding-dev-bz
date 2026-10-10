@@ -70,7 +70,7 @@ export function ContractConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="metal-button px-4 py-2.5 rounded-lg text-xs font-bold text-primary-foreground cursor-pointer shadow-md"
+            className="metal-button px-4 py-2.5 rounded-lg text-xs font-semibold text-primary-foreground cursor-pointer shadow-md"
           >
             Confirmar e Substituir Minuta
           </button>

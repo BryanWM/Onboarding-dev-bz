@@ -19,7 +19,7 @@ export function Timeline() {
           <span className="absolute left-[18px] top-6 size-3 rounded-full border-2 border-background bg-primary shadow-metal" />
           <span className="font-mono text-xs text-primary">{day}</span>
           <div>
-            <h3 className="font-semibold">{title}</h3>
+            <h3 className="font-bold">{title}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{text}</p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export function NextSteps({
             >
               <span className="font-mono text-xs text-primary">{String(i).padStart(2, "0")}</span>
               <div>
-                <h2 className="font-semibold">{stage.title}</h2>
+                <h2 className="font-bold">{stage.title}</h2>
                 <p className="mt-1 truncate text-xs text-muted-foreground">
                   {n === items.length
                     ? "Etapa concluida"

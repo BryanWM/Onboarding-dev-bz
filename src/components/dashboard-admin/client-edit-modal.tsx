@@ -111,7 +111,7 @@ export function ClientEditModal({
                 <Lock className="size-3 text-amber-400" />
                 Data de Criação (Fixa e Não Editável)
               </span>
-              <span className="font-mono font-bold text-foreground">{dataCriacaoFormatada}</span>
+              <span className="font-mono text-foreground">{dataCriacaoFormatada}</span>
             </div>
             <p className="text-[11px] text-muted-foreground">
               A data de criação é um registro cronológico do sistema e não pode ser modificada.
@@ -222,7 +222,7 @@ export function ClientEditModal({
             <button
               type="submit"
               disabled={saving || !nome}
-              className="metal-button px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              className="metal-button px-5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
               <span>{saving ? "Salvando..." : "Salvar Alterações"}</span>

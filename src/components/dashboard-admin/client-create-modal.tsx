@@ -138,7 +138,7 @@ export function ClientCreateModal({
               <button
                 type="button"
                 onClick={handleCopy}
-                className="metal-button h-10 px-4 rounded-lg text-xs font-bold text-primary-foreground flex items-center gap-1.5 cursor-pointer"
+                className="metal-button h-10 px-4 rounded-lg text-xs font-semibold text-primary-foreground flex items-center gap-1.5 cursor-pointer"
               >
                 {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
                 {copied ? "Copiado!" : "Copiar Link"}
@@ -162,7 +162,7 @@ export function ClientCreateModal({
                 <Lock className="size-3 text-amber-400" />
                 Data de Criação (Registrada Automaticamente)
               </span>
-              <span className="font-mono font-bold text-foreground">{hojeFormatado}</span>
+              <span className="font-mono text-foreground">{hojeFormatado}</span>
             </div>
 
             <div className="space-y-1.5">
@@ -265,7 +265,7 @@ export function ClientCreateModal({
               <button
                 type="submit"
                 disabled={submitting || !nome}
-                className="metal-button h-10 px-5 rounded-lg text-xs sm:text-sm font-bold text-primary-foreground flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="metal-button h-10 px-5 rounded-lg text-xs sm:text-sm font-semibold text-primary-foreground flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="size-3.5 animate-spin" /> : <LinkIcon className="size-3.5" />}
                 <span>{submitting ? "Cadastrando..." : "Cadastrar e Gerar Link"}</span>

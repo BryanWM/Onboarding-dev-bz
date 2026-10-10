@@ -53,7 +53,7 @@ export function WorkspaceChecklist({ clienteId, clienteNome }: WorkspaceChecklis
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-bold text-primary">
+          <span className="text-xs font-mono text-primary">
             {concluidos}/{total} ({porcentagem}%)
           </span>
         </div>

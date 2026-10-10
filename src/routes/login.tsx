@@ -2,11 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Lock, Mail, AlertCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { AmbientBackground } from "@/components/ambient-background";
+import { LogoWrmax } from "@/components/logo-wrmax";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "WRMax - Autenticacao Administrativa" },
+      { title: "WRMax - Marketing & IA" },
       { name: "description", content: "Login seguro do painel operacional WRMax." },
     ],
   }),
@@ -43,22 +45,17 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 relative overflow-hidden">
-      {/* Luz ambiente de fundo sutil */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 relative">
+      <AmbientBackground />
 
-      <div className="relative w-full max-w-md bg-card border border-border/80 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
+      <div className="metal-panel relative w-full max-w-md p-8">
         {/* Cabecalho */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary mb-4">
-            <Lock className="w-5 h-5" />
+        <div className="text-center mb-8 flex flex-col items-center gap-4">
+          <LogoWrmax className="h-9" />
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Painel do gestor</h1>
+            <p className="text-sm text-muted-foreground mt-1">Acesso operacional restrito aos gestores</p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-            WRMAX ADMIN
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Acesso operacional restrito aos gestores
-          </p>
         </div>
 
         {/* Alerta de Modo de Desenvolvimento */}

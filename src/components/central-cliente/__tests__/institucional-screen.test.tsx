@@ -6,7 +6,7 @@ describe("InstitucionalScreen Component", () => {
   it("should render call to action headline and whatsapp links", () => {
     render(<InstitucionalScreen />);
 
-    expect(screen.getByText("WRMAX")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /WRMax/i })).toBeInTheDocument();
     expect(
       screen.getByText((content) =>
         content.includes("Deseja contratar os nossos serviços?")

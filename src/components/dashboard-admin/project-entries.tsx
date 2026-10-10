@@ -81,7 +81,7 @@ export function ProjectEntries() {
       </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_170px_auto] sm:items-end">
         <label className="block">
-          <span className="mb-2 block text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="mb-2 block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
             Nome do projeto *
           </span>
           <input
@@ -95,7 +95,7 @@ export function ProjectEntries() {
           />
         </label>
         <label className="block">
-          <span className="mb-2 block text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Data</span>
+          <span className="mb-2 block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Data</span>
           <input
             type="date"
             value={date}

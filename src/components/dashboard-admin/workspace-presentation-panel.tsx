@@ -34,7 +34,7 @@ export function WorkspacePresentationPanel({
   return (
     <section className="metal-panel p-5 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+        <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
           <FileText className="size-4 text-primary" />
           <span>Apresentação Comercial do Projeto (PDF)</span>
         </div>
@@ -68,7 +68,7 @@ export function WorkspacePresentationPanel({
               ? `Arquivo ativo: ${apresentacaoNome}`
               : "Nenhuma apresentação em PDF vinculada a este cliente."}
           </span>
-          <label className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-xs font-medium text-foreground cursor-pointer transition-colors shrink-0">
+          <label className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-xs font-semibold text-foreground cursor-pointer transition-colors shrink-0">
             {uploading || loading ? (
               <Loader2 className="size-3.5 animate-spin text-primary" />
             ) : (

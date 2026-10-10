@@ -44,7 +44,7 @@ export function SlotApresentacao({
                 <button
                   type="button"
                   onClick={() => setExpandido(!expandido)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-secondary px-3 py-2 text-xs font-medium text-foreground transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-secondary px-3 py-2 text-xs font-semibold text-foreground transition-colors cursor-pointer"
                   title={expandido ? "Ocultar pré-visualização" : "Exibir pré-visualização"}
                 >
                   <Eye className="size-3.5 text-primary" />
@@ -54,7 +54,7 @@ export function SlotApresentacao({
                   href={apresentacaoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-secondary px-3 py-2 text-xs font-medium text-foreground transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-secondary px-3 py-2 text-xs font-semibold text-foreground transition-colors cursor-pointer"
                   title="Abrir em tela cheia / nova aba"
                 >
                   <Maximize2 className="size-3.5" />

@@ -24,11 +24,11 @@ export function CopyRow({ label, value }: CopyRowProps) {
   return (
     <div className="w-full min-w-0 overflow-hidden">
       <div className="flex items-center justify-between gap-2 mb-1.5">
-        <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
         {copiado && (
-          <span className="text-[10px] font-mono text-emerald-400 font-bold">
+          <span className="text-[10px] font-mono text-emerald-400">
             Copiado!
           </span>
         )}

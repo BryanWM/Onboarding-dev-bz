@@ -100,7 +100,7 @@ export function SlotPix({
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 sm:p-5 flex items-center gap-3.5 text-emerald-400">
             <CheckCircle2 className="size-6 shrink-0" />
             <div className="text-sm">
-              <span className="font-bold block text-base">Pagamento PIX Confirmado</span>
+              <span className="font-semibold block text-base">Pagamento PIX Confirmado</span>
               Recebimento validado pelo financeiro WRMax. Sua esteira de implantação já está liberada.
             </div>
           </div>
@@ -130,7 +130,7 @@ export function SlotPix({
 
             {/* Escolha do Canal de Envio de Comprovante */}
             <div className="pt-2 border-t border-border/60 space-y-3">
-              <span className="block text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+              <span className="block text-xs font-mono uppercase tracking-wider text-muted-foreground">
                 Como prefere enviar seu comprovante?
               </span>
 
@@ -168,7 +168,7 @@ export function SlotPix({
                     <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-sm flex items-center gap-2.5">
                       <FileCheck className="size-5 shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold">Comprovante anexado com sucesso!</p>
+                        <p className="font-semibold">Comprovante anexado com sucesso!</p>
                         <p className="text-xs text-muted-foreground truncate">{comprovanteEnviadoNome}</p>
                       </div>
                     </div>
@@ -198,7 +198,7 @@ export function SlotPix({
                         type="button"
                         onClick={handleUploadComprovante}
                         disabled={!comprovanteArquivo || enviandoComprovante}
-                        className="metal-button w-full h-11 rounded-lg text-sm font-bold text-primary-foreground flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md"
+                        className="metal-button w-full h-11 rounded-lg text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md"
                       >
                         {enviandoComprovante ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                         <span>{enviandoComprovante ? "Enviando Comprovante..." : "Enviar Comprovante ao Financeiro"}</span>
@@ -211,7 +211,7 @@ export function SlotPix({
                   href={`https://wa.me/${numeroFormatado}?text=${mensagemWhatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="metal-button inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-bold text-primary-foreground cursor-pointer shadow-md"
+                  className="metal-button inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-primary-foreground cursor-pointer shadow-md"
                 >
                   <MessageCircle className="size-4" />
                   <span>Enviar Comprovante via WhatsApp</span>

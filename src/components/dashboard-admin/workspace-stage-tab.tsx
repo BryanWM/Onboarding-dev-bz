@@ -49,7 +49,7 @@ export function WorkspaceStageTab({ stageIndex, clienteId, clienteNome }: Worksp
         <div className="grid gap-4 sm:grid-cols-2">
           {stage.groups.map((group) => (
             <div key={group.title} className="metal-panel p-5 space-y-3">
-              <h3 className="font-semibold text-xs font-mono uppercase tracking-wider text-primary">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-primary">
                 {group.title}
               </h3>
               <div className="space-y-2">
