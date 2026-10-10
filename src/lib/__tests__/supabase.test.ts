@@ -119,6 +119,24 @@ describe("Supabase - cliente (link /c/:token)", () => {
 });
 
 describe("Supabase - gestor", () => {
+  it("listarClientes entrega dados cadastrais como lista (PostgREST devolve objeto 1:1)", async () => {
+    const linhas = [
+      { id: "c1", nome_completo: "Com cadastro", dados_cadastrais_cliente: { razao_social: "Empresa X", cnpj: "1" }, contratos: [], links_temporarios: [] },
+      { id: "c2", nome_completo: "Sem cadastro", dados_cadastrais_cliente: null, contratos: [], links_temporarios: [] },
+    ];
+    const builder: any = {
+      select: () => builder,
+      order: () => builder,
+      then: (resolve: (v: unknown) => void) => resolve({ data: linhas, error: null }),
+    };
+    vi.spyOn(supabase, "from").mockReturnValue(builder);
+    const { listarClientes } = await import("../supabase");
+
+    const res = await listarClientes();
+    expect(res[0]!.dados_cadastrais_cliente?.[0]?.razao_social).toBe("Empresa X");
+    expect(res[1]!.dados_cadastrais_cliente).toEqual([]);
+  });
+
   it("emissao de contrato nao envia URL do navegador (caminho vem do banco)", async () => {
     const spy = vi.spyOn(supabase, "rpc").mockResolvedValueOnce({
       data: { sucesso: true, contrato: { id: "c1", docx_storage_path: "/modelo.docx" } },

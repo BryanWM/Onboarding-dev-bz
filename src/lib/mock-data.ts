@@ -14,6 +14,9 @@ export interface ClienteOnboarding {
   comprovante_pix_nome?: string | null;
   comprovante_pix_enviado_em?: string | null;
   data_programacao?: string | null;
+  onboarding_aberto_em?: string | null;
+  onboarding_confirmado_em?: string | null;
+  onboarding_confirmado_por?: "cliente" | "gestor" | null;
   created_at?: string;
   links_temporarios?: Array<{
     id: string;
@@ -25,16 +28,23 @@ export interface ClienteOnboarding {
   }>;
   dados_cadastrais_cliente?: Array<{
     razao_social: string;
-    cnpj: string;
+    cnpj: string | null;
+    nome_fantasia?: string | null;
     representante_nome?: string;
+    representante_cpf?: string;
     email_financeiro?: string;
-    logradouro?: string;
+    telefone_financeiro?: string | null;
+    logradouro?: string | null;
   }>;
   contratos?: Array<{
     id: string;
-    valor_mensal: number;
-    dia_vencimento: number;
+    origem?: "automatico" | "manual";
+    valor_mensal: number | null;
+    dia_vencimento: number | null;
     status_envio?: string;
+    docx_nome?: string | null;
+    assinado_em?: string | null;
+    created_at?: string;
     liberado_para_cliente?: boolean;
     docx_storage_path?: string | null;
     docx_assinado_storage_path?: string | null;

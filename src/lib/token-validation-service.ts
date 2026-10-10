@@ -11,6 +11,9 @@ export interface ValidacaoTokenResultado {
     expira_em: string;
     segundos_restantes?: number;
     bloqueado_manualmente?: boolean;
+    // a confirmacao do Google Forms libera 5 min depois que o cliente abre o formulario;
+    // null enquanto ele nao abrir
+    segundos_para_confirmar_onboarding?: number | null;
   };
   cliente?: {
     id: string;
@@ -24,16 +27,20 @@ export interface ValidacaoTokenResultado {
     link_onboarding_form?: string | null;
     comprovante_pix_nome?: string | null;
     comprovante_pix_enviado_em?: string | null;
+    onboarding_aberto_em?: string | null;
+    onboarding_confirmado_em?: string | null;
   };
   cadastro_preenchido?: boolean;
   dados_cadastrais?: Record<string, any> | null;
   contrato_liberado?: boolean;
   contrato?: {
     id: string;
-    valor_mensal: number;
-    dia_vencimento: number;
+    origem?: "automatico" | "manual";
+    valor_mensal: number | null;
+    dia_vencimento: number | null;
     status_envio: string;
     docx_storage_path: string | null;
+    docx_nome?: string | null;
     docx_assinado_storage_path: string | null;
     docx_assinado_nome?: string | null;
   } | null;

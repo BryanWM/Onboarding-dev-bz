@@ -14,6 +14,8 @@ export type ClienteStatus =
 
 export type ContratoStatusEnvio = "rascunho" | "gerado" | "enviado_ao_cliente" | "assinado";
 
+export type OrigemContrato = "automatico" | "manual";
+
 // Escrito a mao no formato que o supabase-js espera (Relationships/Views).
 // Mantenha alinhado com supabase/migrations.
 export type Database = {
@@ -35,6 +37,9 @@ export type Database = {
           comprovante_pix_nome: string | null;
           comprovante_pix_enviado_em: string | null;
           data_programacao: string | null;
+          onboarding_aberto_em: string | null;
+          onboarding_confirmado_em: string | null;
+          onboarding_confirmado_por: "cliente" | "gestor" | null;
           observacoes: string | null;
           created_at: string;
           updated_at: string;
@@ -54,6 +59,9 @@ export type Database = {
           comprovante_pix_nome?: string | null;
           comprovante_pix_enviado_em?: string | null;
           data_programacao?: string | null;
+          onboarding_aberto_em?: string | null;
+          onboarding_confirmado_em?: string | null;
+          onboarding_confirmado_por?: "cliente" | "gestor" | null;
           observacoes?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -105,7 +113,7 @@ export type Database = {
           cliente_id: string;
           razao_social: string;
           nome_fantasia: string | null;
-          cnpj: string;
+          cnpj: string | null;
           inscricao_estadual: string | null;
           cep: string;
           logradouro: string;
@@ -120,7 +128,7 @@ export type Database = {
           representante_profissao: string | null;
           representante_estado_civil: string | null;
           email_financeiro: string;
-          telefone_financeiro: string;
+          telefone_financeiro: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -129,7 +137,7 @@ export type Database = {
           cliente_id: string;
           razao_social: string;
           nome_fantasia?: string | null;
-          cnpj: string;
+          cnpj?: string | null;
           inscricao_estadual?: string | null;
           cep: string;
           logradouro: string;
@@ -144,7 +152,7 @@ export type Database = {
           representante_profissao?: string | null;
           representante_estado_civil?: string | null;
           email_financeiro: string;
-          telefone_financeiro: string;
+          telefone_financeiro?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -188,11 +196,13 @@ export type Database = {
           id: string;
           cliente_id: string;
           modelo_id: string | null;
-          valor_mensal: number;
-          dia_vencimento: number;
+          origem: OrigemContrato;
+          valor_mensal: number | null;
+          dia_vencimento: number | null;
           status_envio: ContratoStatusEnvio;
           liberado_para_cliente: boolean;
           docx_storage_path: string | null;
+          docx_nome: string | null;
           docx_assinado_storage_path: string | null;
           docx_assinado_nome: string | null;
           enviado_ao_cliente_em: string | null;
@@ -204,11 +214,13 @@ export type Database = {
           id?: string;
           cliente_id: string;
           modelo_id?: string | null;
-          valor_mensal: number;
-          dia_vencimento: number;
+          origem?: OrigemContrato;
+          valor_mensal?: number | null;
+          dia_vencimento?: number | null;
           status_envio?: ContratoStatusEnvio;
           liberado_para_cliente?: boolean;
           docx_storage_path?: string | null;
+          docx_nome?: string | null;
           docx_assinado_storage_path?: string | null;
           docx_assinado_nome?: string | null;
           enviado_ao_cliente_em?: string | null;
@@ -279,6 +291,28 @@ export type Database = {
           p_valor_mensal: number;
           p_dia_vencimento: number;
         };
+        Returns: Json;
+      };
+      confirmar_onboarding_form: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      registrar_abertura_onboarding: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      anexar_contrato_manual: {
+        Args: {
+          p_cliente_id: string;
+          p_path: string;
+          p_nome: string;
+          p_valor_mensal?: number | null;
+          p_dia_vencimento?: number | null;
+        };
+        Returns: Json;
+      };
+      liberar_contrato_cliente: {
+        Args: { p_contrato_id: string };
         Returns: Json;
       };
       registrar_comprovante_pix: {

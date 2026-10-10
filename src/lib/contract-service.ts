@@ -1,17 +1,19 @@
 import { supabase, isSupabaseConfigured, isModoDemo } from "./supabase-client";
 import { MOCK_MODELOS } from "./mock-data";
-import { montarRefStorage } from "./storage-refs";
+import { montarRefStorage, extensaoSegura } from "./storage-refs";
 import { mensagemDeErro } from "./erros";
 
 export interface ContratoEmitido {
   id: string;
   cliente_id: string;
   modelo_id?: string | null;
-  valor_mensal: number;
-  dia_vencimento: number;
+  origem?: "automatico" | "manual";
+  valor_mensal: number | null;
+  dia_vencimento: number | null;
   status_envio: string;
   liberado_para_cliente: boolean;
   docx_storage_path: string;
+  docx_nome?: string | null;
   docx_assinado_storage_path?: string | null;
   enviado_ao_cliente_em?: string;
   created_at?: string;
@@ -71,6 +73,65 @@ export async function emitirEEnviarContrato(
     } catch {}
   }
   return { sucesso: true, contrato: contratoDemo };
+}
+
+// Contrato editado fora do fluxo padrao: o gestor anexa o arquivo pronto e ele
+// fica oculto para o cliente ate liberarContratoCliente.
+export async function anexarContratoManual(
+  clienteId: string,
+  file: File,
+  valorMensal: number | null = null,
+  diaVencimento: number | null = null
+) {
+  const ext = extensaoSegura(file.name, ["pdf", "docx"]);
+  if (!ext) throw new Error("Envie o contrato em PDF ou DOCX.");
+  if (file.size > 25 * 1024 * 1024) throw new Error("O arquivo excede o limite de 25MB.");
+
+  if (exigirSupabaseOuDemo()) {
+    const caminho = `${clienteId}/contrato_manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("contratos-docx")
+      .upload(caminho, file, file.type ? { contentType: file.type } : {});
+    if (upErr) throw new Error(mensagemDeErro(upErr, "Falha no envio do contrato."));
+
+    const { data, error } = await supabase.rpc("anexar_contrato_manual", {
+      p_cliente_id: clienteId,
+      p_path: caminho,
+      p_nome: file.name,
+      p_valor_mensal: valorMensal,
+      p_dia_vencimento: diaVencimento,
+    });
+    const contrato = (data as { contrato?: ContratoEmitido } | null)?.contrato;
+    if (error || !contrato) throw new Error(mensagemDeErro(error, "Não foi possível anexar o contrato."));
+    return { sucesso: true, contrato };
+  }
+
+  const contratoDemo: ContratoEmitido = {
+    id: `contrato-manual-${Date.now()}`,
+    cliente_id: clienteId,
+    origem: "manual",
+    valor_mensal: valorMensal,
+    dia_vencimento: diaVencimento,
+    status_envio: "gerado",
+    liberado_para_cliente: false,
+    docx_storage_path: URL.createObjectURL(file),
+    docx_nome: file.name,
+    created_at: new Date().toISOString(),
+  };
+  return { sucesso: true, contrato: contratoDemo };
+}
+
+export async function liberarContratoCliente(contratoId: string) {
+  if (exigirSupabaseOuDemo()) {
+    const { data, error } = await supabase.rpc("liberar_contrato_cliente", { p_contrato_id: contratoId });
+    const contrato = (data as { contrato?: ContratoEmitido } | null)?.contrato;
+    if (error || !contrato) throw new Error(mensagemDeErro(error, "Não foi possível liberar o contrato."));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("wrmax:contrato_emitido", { detail: contrato }));
+    }
+    return { sucesso: true, contrato };
+  }
+  return { sucesso: true };
 }
 
 export async function listarModelosContrato() {

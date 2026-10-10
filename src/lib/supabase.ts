@@ -5,7 +5,13 @@ import { mensagemDeErro } from "./erros";
 
 export { mensagemDeErro } from "./erros";
 export { isSupabaseConfigured, isModoDemo, supabase } from "./supabase-client";
-export { emitirEEnviarContrato, listarModelosContrato, criarModeloContrato } from "./contract-service";
+export {
+  emitirEEnviarContrato,
+  listarModelosContrato,
+  criarModeloContrato,
+  anexarContratoManual,
+  liberarContratoCliente,
+} from "./contract-service";
 export {
   validarLinkToken,
   MOTIVO_FALHA_CONEXAO,
@@ -67,6 +73,42 @@ export async function submeterCadastroCliente(token: string, dados: Record<strin
   gravarJsonLocal(`wrmax_cadastro_${token}`, dados);
   emitirEvento("wrmax:cadastro_submetido", { token, dados });
   return { sucesso: true, dados };
+}
+
+// Cliente abriu o Google Forms (modal ou nova aba). So a primeira abertura conta:
+// a confirmacao libera 5 minutos depois dela.
+export async function registrarAberturaOnboarding(token: string) {
+  if (exigirSupabaseOuDemo()) {
+    const { data, error } = await supabase.rpc("registrar_abertura_onboarding", { p_token: token });
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível registrar a abertura do formulário."));
+    const res = data as { sucesso?: boolean; erro?: string; segundos_para_confirmar?: number } | null;
+    if (!res?.sucesso) throw new Error(mensagemDeErro(res?.erro, "Não foi possível registrar a abertura do formulário."));
+    return { segundosParaConfirmar: res.segundos_para_confirmar ?? 300 };
+  }
+
+  const chave = `wrmax_onboarding_aberto_${token}`;
+  const abertoEm = lerJsonLocal<string | null>(chave, null) || new Date().toISOString();
+  gravarJsonLocal(chave, abertoEm);
+  const restantes = Math.ceil((new Date(abertoEm).getTime() + 5 * 60 * 1000 - Date.now()) / 1000);
+  return { segundosParaConfirmar: Math.max(0, restantes) };
+}
+
+// Cliente confirma que preencheu o Google Forms. O banco so aceita 5 minutos
+// depois da primeira abertura do formulario e guarda a data da primeira confirmacao.
+export async function confirmarOnboardingForm(token: string) {
+  if (exigirSupabaseOuDemo()) {
+    const { data, error } = await supabase.rpc("confirmar_onboarding_form", { p_token: token });
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível registrar a confirmação. Tente novamente."));
+    const res = data as { sucesso?: boolean; erro?: string; confirmado_em?: string } | null;
+    if (!res?.sucesso) throw new Error(mensagemDeErro(res?.erro, "Não foi possível registrar a confirmação. Tente novamente."));
+    emitirEvento("wrmax:onboarding_confirmado", { token, confirmadoEm: res.confirmado_em });
+    return { sucesso: true, confirmadoEm: res.confirmado_em || new Date().toISOString() };
+  }
+
+  const confirmadoEm = new Date().toISOString();
+  gravarJsonLocal(`wrmax_onboarding_confirmado_${token}`, confirmadoEm);
+  emitirEvento("wrmax:onboarding_confirmado", { token, confirmadoEm });
+  return { sucesso: true, confirmadoEm };
 }
 
 async function enviarArquivoCliente(token: string, tipo: TipoUploadCliente, file: File) {
@@ -222,6 +264,25 @@ export async function atualizarStatusPix(clienteId: string, pago: boolean) {
   emitirEvento("wrmax:pix_status_atualizado", { clienteId, pago });
   emitirEvento("wrmax:projeto_atualizado", { clienteId, dados: { pix_pago: pago } });
   return { sucesso: true, pix_pago: pago };
+}
+
+// Gestor marca (ou desmarca) que o cliente preencheu o Google Forms, por exemplo
+// depois de conferir as respostas do formulario.
+export async function marcarOnboardingGestor(clienteId: string, preenchido: boolean) {
+  const campos = preenchido
+    ? { onboarding_confirmado_em: new Date().toISOString(), onboarding_confirmado_por: "gestor" as const }
+    : { onboarding_confirmado_em: null, onboarding_confirmado_por: null };
+
+  if (exigirSupabaseOuDemo()) {
+    const { error } = await supabase.from("clientes_onboarding").update(campos).eq("id", clienteId);
+    if (error) throw new Error(mensagemDeErro(error, "Não foi possível atualizar o status do onboarding."));
+  } else {
+    const editados = lerJsonLocal<Record<string, any>>("wrmax_clientes_editados", {});
+    editados[clienteId] = { ...(editados[clienteId] || {}), ...campos };
+    gravarJsonLocal("wrmax_clientes_editados", editados);
+  }
+  emitirEvento("wrmax:projeto_atualizado", { clienteId, dados: campos });
+  return { sucesso: true, ...campos };
 }
 
 // Comprovante recebido por WhatsApp/e-mail e anexado pelo gestor.
