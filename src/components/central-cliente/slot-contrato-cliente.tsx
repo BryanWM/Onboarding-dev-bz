@@ -11,10 +11,12 @@ interface SlotContratoClienteProps {
   contratoLiberado?: boolean;
   contrato?: {
     id: string;
-    valor_mensal: number;
-    dia_vencimento: number;
+    origem?: "automatico" | "manual" | undefined;
+    valor_mensal: number | null;
+    dia_vencimento: number | null;
     status_envio: string;
     docx_storage_path: string | null;
+    docx_nome?: string | null | undefined;
     docx_assinado_storage_path: string | null;
     docx_assinado_nome?: string | null;
   } | null;
@@ -51,8 +53,24 @@ export function SlotContratoCliente({
   );
   const modeloDocx = modeloUrl && modeloUrl !== "#" ? modeloUrl : undefined;
 
+  // Contrato anexado manualmente pelo gestor: baixa o arquivo como esta.
+  const contratoManual = contrato?.origem === "manual";
+
+  const handleBaixarContratoManual = () => {
+    if (!modeloDocx) return;
+    const link = document.createElement("a");
+    link.href = modeloDocx;
+    link.download = contrato?.docx_nome || "Contrato_WRMAX";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleBaixarContratoParametrizado = async () => {
     if (!contrato) return;
+    if (contratoManual) return handleBaixarContratoManual();
     setGerandoDocx(true);
 
     try {
@@ -155,7 +173,7 @@ export function SlotContratoCliente({
           <div className="rounded-xl border border-border/80 bg-secondary/20 p-5 sm:p-6 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-mono uppercase tracking-wider mb-2">
                   <FileCheck className="size-3.5" />
                   Contrato Liberado para Assinatura
                 </span>
@@ -165,43 +183,49 @@ export function SlotContratoCliente({
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-sm font-mono">
-                <div className="bg-secondary/40 px-3.5 py-2 rounded-lg border border-border">
-                  <span className="text-muted-foreground block text-[10px] uppercase">Investimento Mensal</span>
-                  <span className="font-bold text-base text-foreground">{formatCurrency(contrato.valor_mensal)}</span>
-                </div>
-                <div className="bg-secondary/40 px-3.5 py-2 rounded-lg border border-border">
-                  <span className="text-muted-foreground block text-[10px] uppercase">Vencimento</span>
-                  <span className="font-bold text-base text-foreground">Todo dia {contrato.dia_vencimento}</span>
-                </div>
+                {contrato.valor_mensal != null && (
+                  <div className="bg-secondary/40 px-3.5 py-2 rounded-lg border border-border">
+                    <span className="text-muted-foreground block text-[10px] uppercase">Investimento Mensal</span>
+                    <span className="font-sans tabular-nums font-semibold text-base text-foreground">{formatCurrency(contrato.valor_mensal)}</span>
+                  </div>
+                )}
+                {contrato.dia_vencimento != null && (
+                  <div className="bg-secondary/40 px-3.5 py-2 rounded-lg border border-border">
+                    <span className="text-muted-foreground block text-[10px] uppercase">Vencimento</span>
+                    <span className="font-sans tabular-nums font-semibold text-base text-foreground">Todo dia {contrato.dia_vencimento}</span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Acao 1: Baixar Minuta Contratual (so aparece quando o admin define e envia) */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-secondary/30 p-5 rounded-xl border border-border/60">
               <div className="space-y-1">
-                <p className="text-sm font-bold text-foreground">
+                <p className="text-sm font-semibold text-foreground">
                   1. Baixar Minuta Contratual Oficial
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Documento em Word (.docx) parametrizado com seus dados cadastrais e as cláusulas acordadas.
+                  {contratoManual
+                    ? "Documento preparado pelo gestor com as condições acordadas com você."
+                    : "Documento em Word (.docx) parametrizado com seus dados cadastrais e as cláusulas acordadas."}
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={handleBaixarContratoParametrizado}
-                disabled={gerandoDocx}
-                className="metal-button inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-bold text-primary-foreground cursor-pointer shadow-md shrink-0 w-full sm:w-auto disabled:opacity-60"
+                disabled={gerandoDocx || (contratoManual && !modeloDocx)}
+                className="metal-button inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-primary-foreground cursor-pointer shadow-md shrink-0 w-full sm:w-auto disabled:opacity-60"
               >
                 {gerandoDocx ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                <span>{gerandoDocx ? "Compilando Contrato..." : "Baixar Contrato Oficial (.docx)"}</span>
+                <span>{gerandoDocx ? "Compilando Contrato..." : contratoManual ? "Baixar Contrato Oficial" : "Baixar Contrato Oficial (.docx)"}</span>
               </button>
             </div>
 
             {/* Acao 2: Enviar Contrato Assinado */}
             <div className="bg-secondary/30 p-5 rounded-xl border border-border/60 space-y-4">
               <div className="space-y-1">
-                <p className="text-sm font-bold text-foreground">
+                <p className="text-sm font-semibold text-foreground">
                   2. Enviar Contrato Assinado
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -220,7 +244,7 @@ export function SlotContratoCliente({
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-sm flex items-center gap-3">
                   <CheckCircle2 className="size-5 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold">Via assinada enviada com sucesso!</p>
+                    <p className="font-semibold">Via assinada enviada com sucesso!</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {nomeArquivoAssinado || "Documento assinado recebido pelo gestor da WRMax."}
                     </p>
@@ -243,7 +267,7 @@ export function SlotContratoCliente({
                     type="button"
                     onClick={handleEnviarAssinado}
                     disabled={!file || uploading}
-                    className="metal-button w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-bold text-primary-foreground cursor-pointer disabled:opacity-50 shrink-0 flex items-center justify-center gap-2 shadow-md"
+                    className="metal-button w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold text-primary-foreground cursor-pointer disabled:opacity-50 shrink-0 flex items-center justify-center gap-2 shadow-md"
                   >
                     {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                     <span>{uploading ? "Enviando via..." : "Enviar Via Assinada"}</span>
@@ -258,7 +282,7 @@ export function SlotContratoCliente({
               <Lock className="size-5" />
             </div>
             <div className="space-y-1">
-              <h4 className="text-base font-bold text-foreground">
+              <h4 className="font-display text-base font-semibold text-foreground">
                 Contrato em elaboração pelo gestor
               </h4>
               <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">

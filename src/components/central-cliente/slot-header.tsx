@@ -8,17 +8,19 @@ interface SlotHeaderProps {
 }
 
 export function SlotHeader({ index, icon, title, subtitle }: SlotHeaderProps) {
+  const numero = String(Number(index) || index);
   return (
-    <div className="flex items-start gap-3 border-b border-border pb-4">
-      <span className="grid size-9 shrink-0 place-items-center rounded-full border border-primary/35 font-mono text-[10px] text-primary">
-        {index}
+    <div className="flex items-start gap-3.5">
+      <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-primary/35 bg-primary/10 font-mono text-base text-primary">
+        {numero}
       </span>
-      <div>
-        <div className="flex items-center gap-2 text-primary">
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-primary/90 [&_svg]:size-3.5">
           {icon}
-          <h2 className="text-base font-bold text-foreground">{title}</h2>
+          <span>Etapa {numero}</span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+        <h2 className="mt-0.5 text-lg sm:text-xl font-bold text-foreground tracking-tight">{title}</h2>
+        <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{subtitle}</p>
       </div>
     </div>
   );

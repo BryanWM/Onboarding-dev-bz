@@ -34,15 +34,20 @@ describe("Route /c/$token (Jornada do Cliente com Token Efêmero)", () => {
     render(<ClienteTokenScreen tokenProp="mock-token-123" />);
 
     await waitFor(() => {
-      expect(screen.getByText("WRMAX")).toBeInTheDocument();
-      expect(screen.getByText(/Ambiente Criptografado/i)).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "WRMax Marketing" })).toBeInTheDocument();
+      expect(screen.getByText(/Central do cliente/i)).toBeInTheDocument();
       expect(screen.getByText(/Jornada de Implantação/i)).toBeInTheDocument();
     });
+
+    // Progresso: nada concluido ainda, etapa atual = Proposta
+    expect(screen.getByText("0 de 5 etapas concluídas")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: /etapas concluídas/i })).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.getByText(/Próximo · Proposta/)).toBeInTheDocument();
 
     // 4 Slots
     expect(screen.getByText("Apresentação do Projeto")).toBeInTheDocument();
     expect(screen.getByText("Pagamento via PIX")).toBeInTheDocument();
-    expect(screen.getByText("Dados Cadastrais da Empresa")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dados Cadastrais" })).toBeInTheDocument();
     expect(screen.getByText("Contrato de Prestação de Serviços")).toBeInTheDocument();
   });
 });
