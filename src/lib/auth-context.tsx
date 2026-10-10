@@ -45,8 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Depende so do id: o Supabase recria o objeto user ao renovar a sessao (ex.: ao
+  // voltar o foco da janela) e isso nao pode desmontar o painel nem perder a aba aberta.
+  const userId = user?.id ?? null;
+
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setIsGestor(null);
       return;
     }
@@ -62,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       ativo = false;
     };
-  }, [user]);
+  }, [userId]);
 
   const login = async (email: string, pass: string) => {
     if (!isSupabaseConfigured) {

@@ -40,7 +40,15 @@ export async function listarClientes(): Promise<ClienteOnboarding[]> {
       .order("created_at", { referencedTable: "links_temporarios", ascending: false })
       .order("created_at", { referencedTable: "contratos", ascending: false });
     if (error) throw new Error(mensagemDeErro(error, "Não foi possível carregar os clientes."));
-    return (data || []) as unknown as ClienteOnboarding[];
+    // dados_cadastrais_cliente.cliente_id e UNIQUE: o PostgREST devolve objeto
+    // (ou null), nao lista. O painel le como lista ([0]), entao normalizamos aqui.
+    return (data || []).map((c) => {
+      const cad = (c as { dados_cadastrais_cliente: unknown }).dados_cadastrais_cliente;
+      return {
+        ...c,
+        dados_cadastrais_cliente: Array.isArray(cad) ? cad : cad ? [cad] : [],
+      };
+    }) as unknown as ClienteOnboarding[];
   }
 
   return listarClientesModoDemo();
