@@ -12,6 +12,11 @@ interface WorkspaceHeaderProps {
   loadingAction?: boolean;
 }
 
+function iniciais(nome: string) {
+  const partes = nome.split(/\s+/).filter((p) => p.length > 2);
+  return ((partes[0]?.[0] || nome[0] || "?") + (partes[1]?.[0] || "")).toUpperCase();
+}
+
 export function WorkspaceHeader({
   clienteNome,
   clienteEmail,
@@ -23,69 +28,62 @@ export function WorkspaceHeader({
   onTogglePix,
   loadingAction = false,
 }: WorkspaceHeaderProps) {
-  const statusDisplay = status ? status.replace("_", " ").toUpperCase() : "ATIVO";
+  const statusDisplay = status ? status.replaceAll("_", " ").toUpperCase() : "ATIVO";
 
   return (
     <div className="space-y-4">
-      {/* Botao unico e nao redundante de retorno */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer w-fit group"
-        >
-          <ArrowLeft className="size-4 group-hover:-translate-x-0.5 transition-transform" />
-          <span>Voltar para Lista de Clientes</span>
-        </button>
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer w-fit group"
+      >
+        <ArrowLeft className="size-4 group-hover:-translate-x-0.5 transition-transform" />
+        <span>Voltar para Lista de Clientes</span>
+      </button>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {temComprovantePix && (
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
-              <FileCheck className="size-3.5" />
-              Comprovante PIX Anexado
-            </span>
-          )}
-
-          <span className="text-sm font-mono text-muted-foreground">Status:</span>
-          <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/25">
-            {statusDisplay}
-          </span>
-        </div>
-      </div>
-
-      <div className="metal-panel p-5 sm:p-7">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="space-y-1.5">
-            <span className="text-xs font-mono text-primary uppercase tracking-widest block font-semibold">
-              Ambiente Operacional do Cliente
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+      <section className="metal-panel p-5 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="flex items-center gap-4 min-w-0">
+          <div
+            aria-hidden="true"
+            className="size-14 sm:size-16 shrink-0 rounded-xl grid place-items-center chip-ouro font-display font-bold text-lg"
+          >
+            {iniciais(clienteNome || "Cliente")}
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <span className="rotulo block">Ambiente operacional do cliente</span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight truncate">
               {clienteNome || "Cliente Parceiro"}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              WhatsApp: <span className="font-semibold text-foreground/90">{clienteWhatsapp || "Não informado"}</span>
-              <span className="mx-2">·</span>
-              E-mail: <span className="font-semibold text-foreground/90">{clienteEmail || "Não informado"}</span>
+            <p className="text-[13px] text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+              <span>{clienteEmail || "E-mail não informado"}</span>
+              <span className="font-mono">WhatsApp {clienteWhatsapp || "não informado"}</span>
             </p>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onTogglePix(!pixPago)}
-              disabled={loadingAction}
-              className={`h-11 px-5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md w-full md:w-auto ${
-                pixPago
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
-                  : "border border-border bg-secondary hover:bg-secondary/80 text-foreground"
-              }`}
-            >
-              <CheckCircle2 className="size-4" />
-              <span>{pixPago ? "PIX Confirmado (Pago)" : "Marcar PIX como Pago"}</span>
-            </button>
-          </div>
         </div>
-      </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {temComprovantePix && (
+            <span className="h-8 px-3 rounded-full text-xs border border-[var(--linha-2)] text-foreground inline-flex items-center gap-[7px]">
+              <FileCheck className="size-3.5 text-[#e7b45a]" />
+              Comprovante PIX anexado
+            </span>
+          )}
+          <span className="h-8 px-3 rounded-full text-[11px] font-mono tracking-wider chip-ouro inline-flex items-center">
+            {statusDisplay}
+          </span>
+          <button
+            type="button"
+            onClick={() => onTogglePix(!pixPago)}
+            disabled={loadingAction}
+            className={`h-11 px-5 rounded-lg text-sm font-semibold transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 glass-button ${
+              pixPago ? "!text-[#6fd39b]" : ""
+            }`}
+          >
+            <CheckCircle2 className="size-4" />
+            <span>{pixPago ? "PIX Confirmado (Pago)" : "Marcar PIX como Pago"}</span>
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

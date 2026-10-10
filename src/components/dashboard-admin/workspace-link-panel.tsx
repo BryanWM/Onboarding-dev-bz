@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Clock, Check, Copy, ShieldAlert, ShieldCheck, Trash2, FolderOpen, ExternalLink, Edit2, Save } from "lucide-react";
+import { Clock, Check, Copy, ShieldAlert, ShieldCheck, Trash2 } from "lucide-react";
 import { LinkDeleteModal } from "./link-delete-modal";
 
-const FORM_ONBOARDING_DEFAULT =
-  "https://docs.google.com/forms/d/e/1FAIpQLSdyJjJicNhDIqPgkUSgEHwovvbywPsazFhWcPV3mJCVkobErg/viewform";
-
+// O link do Google Forms e a confirmacao do onboarding ficam na aba
+// "3. Onboard" (workspace-onboarding-panel.tsx).
 interface WorkspaceLinkPanelProps {
   link?: {
     id: string;
@@ -14,29 +13,21 @@ interface WorkspaceLinkPanelProps {
     segundos_restantes?: number;
   } | null;
   clienteNome: string;
-  linkOnboardingForm?: string | null;
   loadingAction?: boolean;
   onProrrogar: (minutos: number) => Promise<void> | void;
   onToggleBloqueio: () => Promise<void> | void;
   onExcluir: () => Promise<void> | void;
-  onSalvarLinkOnboarding?: (url: string) => Promise<void> | void;
 }
 
 export function WorkspaceLinkPanel({
   link,
   clienteNome,
-  linkOnboardingForm,
   loadingAction = false,
   onProrrogar,
   onToggleBloqueio,
   onExcluir,
-  onSalvarLinkOnboarding,
 }: WorkspaceLinkPanelProps) {
   const [copied, setCopied] = useState(false);
-  const [copiedForms, setCopiedForms] = useState(false);
-  const [editandoForms, setEditandoForms] = useState(false);
-  const [formsUrlInput, setFormsUrlInput] = useState(linkOnboardingForm || "");
-  const [salvandoForms, setSalvandoForms] = useState(false);
   const [modalDeleteAberto, setModalDeleteAberto] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
@@ -74,37 +65,18 @@ export function WorkspaceLinkPanel({
     }
   };
 
-  const currentFormsUrl = (linkOnboardingForm && linkOnboardingForm.trim()) || FORM_ONBOARDING_DEFAULT;
-
-  const handleCopyForms = () => {
-    navigator.clipboard.writeText(currentFormsUrl);
-    setCopiedForms(true);
-    setTimeout(() => setCopiedForms(false), 2000);
-  };
-
-  const handleSalvarForms = async () => {
-    if (!onSalvarLinkOnboarding) return;
-    setSalvandoForms(true);
-    try {
-      await onSalvarLinkOnboarding(formsUrlInput.trim());
-      setEditandoForms(false);
-    } finally {
-      setSalvandoForms(false);
-    }
-  };
-
   return (
     <section className="metal-panel p-5 sm:p-7 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
         <div className="flex items-center gap-2.5">
           <Clock className="size-5 text-primary" />
           <h2 className="text-base sm:text-lg font-bold text-foreground">
-            Link Temporário de Acesso do Cliente (Etapa 1)
+            Link Temporário de Acesso do Cliente (Etapa 0)
           </h2>
         </div>
         {link && (
           <span
-            className={`px-3 py-1 rounded-full text-xs font-mono font-bold self-start sm:self-auto ${
+            className={`px-3 py-1 rounded-full text-xs font-mono self-start sm:self-auto ${
               isBloqueado
                 ? "bg-destructive/15 text-destructive border border-destructive/30"
                 : isExpirado
@@ -155,7 +127,7 @@ export function WorkspaceLinkPanel({
               type="button"
               onClick={onToggleBloqueio}
               disabled={loadingAction}
-              className={`h-10 px-4 rounded-lg text-xs sm:text-sm font-mono font-bold transition-colors flex items-center gap-2 cursor-pointer ${
+              className={`h-10 px-4 rounded-lg text-xs sm:text-sm font-mono transition-colors flex items-center gap-2 cursor-pointer ${
                 isBloqueado
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
                   : "bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25"
@@ -179,89 +151,6 @@ export function WorkspaceLinkPanel({
       ) : (
         <p className="text-sm text-muted-foreground">Nenhum link temporário ativo para este cliente.</p>
       )}
-
-      {/* Secao de Gestao do Link de Onboarding (Google Forms) */}
-      <div className="pt-5 border-t border-border/60 space-y-3.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <FolderOpen className="size-5 text-primary" />
-            <h3 className="text-sm sm:text-base font-bold text-foreground">
-              Questionário de Onboarding (Google Forms)
-            </h3>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-primary/10 text-primary border border-primary/25 self-start sm:self-auto">
-            {linkOnboardingForm ? "Link Personalizado" : "Link Padrão WRMax"}
-          </span>
-        </div>
-
-        {editandoForms ? (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <input
-              type="url"
-              value={formsUrlInput}
-              onChange={(e) => setFormsUrlInput(e.target.value)}
-              placeholder="https://docs.google.com/forms/d/e/.../viewform"
-              className="flex-1 h-10 px-3 rounded-lg border border-border bg-background text-xs sm:text-sm text-foreground focus:outline-none focus:border-primary font-mono"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSalvarForms}
-                disabled={salvandoForms}
-                className="metal-button h-10 px-4 rounded-lg text-xs font-bold text-primary-foreground flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-              >
-                <Save className="size-3.5" />
-                <span>{salvandoForms ? "Salvando..." : "Salvar"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditandoForms(false)}
-                className="h-10 px-3 rounded-lg border border-border bg-secondary/30 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-xl border border-border bg-background/80 text-xs sm:text-sm font-mono">
-            <span className="truncate flex-1 text-foreground/90 font-medium">
-              {currentFormsUrl}
-            </span>
-            <div className="flex items-center gap-2 shrink-0">
-              <a
-                href={currentFormsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer flex items-center gap-1.5 border border-border font-sans text-xs font-semibold"
-              >
-                <ExternalLink className="size-3.5 text-primary" />
-                <span>Abrir</span>
-              </a>
-              <button
-                type="button"
-                onClick={handleCopyForms}
-                className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer flex items-center gap-1.5 border border-border font-sans text-xs font-semibold"
-              >
-                {copiedForms ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
-                <span>{copiedForms ? "Copiado!" : "Copiar"}</span>
-              </button>
-              {onSalvarLinkOnboarding && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormsUrlInput(linkOnboardingForm || "");
-                    setEditandoForms(true);
-                  }}
-                  className="px-3 py-2 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer flex items-center gap-1.5 font-sans text-xs font-semibold"
-                >
-                  <Edit2 className="size-3.5" />
-                  <span>Alterar Link</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
 
       <LinkDeleteModal
         open={modalDeleteAberto}

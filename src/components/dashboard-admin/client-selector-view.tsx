@@ -1,14 +1,23 @@
 import { useState, useMemo } from "react";
-import { Search, Plus, FileText, ShieldCheck } from "lucide-react";
+import { Search, Plus, FileText } from "lucide-react";
 import type { ClienteOnboarding } from "@/lib/mock-data";
 import { ProjectDeleteModal } from "./project-delete-modal";
 import { ClientCreateModal } from "./client-create-modal";
 import { ClientEditModal } from "./client-edit-modal";
 import { ProjectListCard } from "./project-list-card";
 import { excluirProjeto, bloquearLink, desbloquearLink } from "@/lib/supabase";
+import { setorDoCliente, type Setor } from "@/lib/fase-projeto";
+
+const FILTROS = [
+  { id: "todas", rotulo: "Tudo" },
+  { id: "hoje", rotulo: "Hoje" },
+  { id: "7dias", rotulo: "7 dias" },
+  { id: "30dias", rotulo: "30 dias" },
+] as const;
 
 interface ClientSelectorViewProps {
   clientes: ClienteOnboarding[];
+  setor?: Setor;
   loading: boolean;
   onRefresh: () => Promise<void>;
   onSelectCliente: (cliente: ClienteOnboarding) => void;
@@ -17,6 +26,7 @@ interface ClientSelectorViewProps {
 
 export function ClientSelectorView({
   clientes,
+  setor = "comercial",
   loading,
   onRefresh,
   onSelectCliente,
@@ -31,8 +41,14 @@ export function ClientSelectorView({
   const [clienteParaExcluir, setClienteParaExcluir] = useState<ClienteOnboarding | null>(null);
   const [clienteParaEditar, setClienteParaEditar] = useState<ClienteOnboarding | null>(null);
 
+  // Cada secao ve so os seus projetos: Comercial ate o contrato assinado, depois Producao.
+  const clientesDoSetor = useMemo(
+    () => (Array.isArray(clientes) ? clientes : []).filter((c) => c && setorDoCliente(c) === setor),
+    [clientes, setor]
+  );
+
   const clientesFiltrados = useMemo(() => {
-    let list = Array.isArray(clientes) ? clientes : [];
+    let list = clientesDoSetor;
     const termo = (busca || "").toLowerCase().trim();
     if (termo) {
       list = list.filter((c) => {
@@ -58,7 +74,42 @@ export function ClientSelectorView({
     }
 
     return list;
-  }, [clientes, busca, filtroData]);
+  }, [clientesDoSetor, busca, filtroData]);
+
+  // Mensagens iniciais calculadas a partir dos clientes reais
+  const avisos = useMemo(() => {
+    const lista = clientesDoSetor;
+    const umDia = 24 * 3600 * 1000;
+    if (setor === "producao") {
+      const assinadoEm = (c: ClienteOnboarding) => {
+        const datas = (c.contratos || []).map((ct) => ct.assinado_em).filter(Boolean) as string[];
+        return datas.length ? Math.max(...datas.map((d) => new Date(d).getTime())) : null;
+      };
+      const recentes = lista.filter((c) => {
+        const t = assinadoEm(c);
+        return t !== null && Date.now() - t <= 7 * umDia;
+      }).length;
+      const noComercial = (Array.isArray(clientes) ? clientes : []).filter((c) => c && setorDoCliente(c) === "comercial").length;
+      return [
+        { rotulo: "Em produção", valor: lista.length, texto: "projetos com contrato assinado" },
+        { rotulo: "Chegaram na semana", valor: recentes, texto: "contratos assinados nos últimos 7 dias" },
+        { rotulo: "No comercial", valor: noComercial, texto: "projetos ainda em negociação" },
+      ];
+    }
+    const novosHoje = lista.filter((c) => c.created_at && Date.now() - new Date(c.created_at).getTime() <= umDia).length;
+    const pixPendentes = lista.filter((c) => !c.pix_pago).length;
+    const contratosParaEmitir = lista.filter(
+      (c) => (c.dados_cadastrais_cliente?.length ?? 0) > 0 && !(c.contratos?.length ?? 0)
+    ).length;
+    return [
+      { rotulo: "Novos hoje", valor: novosHoje, texto: "clientes cadastrados nas últimas 24h" },
+      { rotulo: "PIX pendente", valor: pixPendentes, texto: "aguardando confirmação do financeiro" },
+      { rotulo: "Contratos", valor: contratosParaEmitir, texto: "com cadastro recebido, prontos para emitir" },
+    ];
+  }, [clientes, clientesDoSetor, setor]);
+
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
 
   const handleConfirmarExclusao = async () => {
     if (!clienteParaExcluir) return;
@@ -89,104 +140,116 @@ export function ClientSelectorView({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/70 pb-6">
-        <div>
-          <span className="text-xs font-mono uppercase tracking-widest text-primary flex items-center gap-1.5 mb-1 font-semibold">
-            <ShieldCheck className="size-4" /> Gestão Operacional de Onboarding
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Novos Projetos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Selecione um cliente para abrir seu ambiente exclusivo de acompanhamento e implantação.</p>
+    <div className="space-y-5">
+      {/* Mensagens iniciais + acoes principais */}
+      {/* Mensagens iniciais + acoes principais (dourado: etiqueta, 1 palavra e "Novo Projeto") */}
+      <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-7 pt-4 sm:pt-6 px-1">
+        <div className="space-y-4 min-w-0">
+          <span className="tag-ouro inline-block">{setor === "producao" ? "Produção" : "Comercial"}</span>
+          {setor === "producao" ? (
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-[1.04]">
+              {saudacao}, equipe.
+              <br />
+              Projetos em <span className="metal-text">produção</span>.
+            </h1>
+          ) : (
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-[1.04]">
+              {saudacao}, gestor.
+              <br />
+              Seus clientes em <span className="metal-text">andamento</span>.
+            </h1>
+          )}
+          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
+            {setor === "producao"
+              ? "Projetos chegam aqui quando o cliente envia o contrato assinado. Abra um projeto para conduzir as boas-vindas, a estratégia e a produção."
+              : "Abra um cliente para acompanhar a implantação ou cadastre um novo projeto para gerar o link de acesso."}
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        {setor === "comercial" && (
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onOpenModelos}
-            className="px-4 py-2.5 rounded-lg border border-border bg-secondary/40 text-sm font-semibold text-foreground hover:bg-secondary transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+            className="glass-button h-12 px-5 rounded-lg text-sm font-semibold flex items-center gap-2.5 cursor-pointer"
           >
-            <FileText className="size-4 text-primary" />
+            <FileText className="size-4" />
             <span>Modelos de Contrato</span>
           </button>
           <button
             type="button"
             onClick={() => setModalNovoAberto(true)}
-            className="metal-button px-5 py-2.5 rounded-lg text-sm font-bold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md"
+            className="metal-button h-12 px-6 rounded-lg text-sm font-semibold flex items-center gap-2.5 cursor-pointer"
           >
             <Plus className="size-4" />
             <span>Novo Projeto</span>
           </button>
         </div>
-      </div>
+        )}
+      </section>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="size-4 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2" />
+      {/* Numeros do dia (valor em dourado suave) */}
+      <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        {avisos.map((a) => (
+          <li key={a.rotulo} className="metal-panel px-5 py-5 flex flex-col gap-1.5">
+            <span className="rotulo">{a.rotulo}</span>
+            <strong className="font-display text-4xl font-bold tracking-tight text-primary">{a.valor}</strong>
+            <span className="text-[13px] text-muted-foreground">{a.texto}</span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Busca + filtros rapidos */}
+      <section className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+        <label className="relative flex-1 min-w-0">
+          <span className="sr-only">Buscar cliente</span>
+          <Search className="size-4 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
-            type="text"
-            placeholder="Buscar por nome do projeto, pessoa, e-mail ou WhatsApp..."
+            type="search"
+            placeholder="Buscar por nome, e-mail ou WhatsApp"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-border bg-secondary/20 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/80 transition-colors"
+            className="w-full h-12 pl-11 pr-4 rounded-[10px] border border-[var(--linha-2)] bg-[var(--campo)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[rgba(232,199,122,0.55)] transition-colors"
           />
-        </div>
+        </label>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setFiltroData("todas")}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer border transition-colors shrink-0 ${
-              filtroData === "todas"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Todas
-          </button>
-          <button
-            type="button"
-            onClick={() => setFiltroData("hoje")}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer border transition-colors shrink-0 ${
-              filtroData === "hoje"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Hoje
-          </button>
-          <button
-            type="button"
-            onClick={() => setFiltroData("7dias")}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer border transition-colors shrink-0 ${
-              filtroData === "7dias"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            7 dias
-          </button>
-          <button
-            type="button"
-            onClick={() => setFiltroData("30dias")}
-            className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer border transition-colors shrink-0 ${
-              filtroData === "30dias"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            30 dias
-          </button>
+        <div role="group" aria-label="Filtro rápido por data de criação" className="flex items-center gap-1 p-1 rounded-[10px] bg-[var(--campo)] border border-[var(--linha)] overflow-x-auto">
+          {FILTROS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={filtroData === f.id}
+              onClick={() => setFiltroData(f.id)}
+              className={`h-10 px-4 rounded-[7px] text-sm font-semibold cursor-pointer transition-colors shrink-0 ${
+                filtroData === f.id ? "chip-ouro" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.rotulo}
+            </button>
+          ))}
         </div>
-      </div>
+        <span className="text-xs font-mono text-muted-foreground px-2 text-center md:text-left">
+          {clientesFiltrados.length} {clientesFiltrados.length === 1 ? "cliente" : "clientes"}
+        </span>
+      </section>
 
       <div className="space-y-3">
+        <h2 className="sr-only">{setor === "producao" ? "Projetos em produção" : "Novos Projetos"}</h2>
         {loading ? (
           <div className="py-12 text-center text-sm font-mono text-muted-foreground">Carregando projetos...</div>
         ) : clientesFiltrados.length === 0 ? (
-          <div className="metal-panel p-8 text-center space-y-3">
-            <p className="text-muted-foreground text-sm font-mono">Nenhum projeto encontrado para o termo pesquisado.</p>
+          <div className="metal-panel p-10 text-center space-y-2">
+            <Search className="size-7 text-muted-foreground/70 mx-auto" />
+            <p className="font-semibold text-sm text-foreground">
+              {clientesDoSetor.length === 0 && setor === "producao" ? "Nenhum projeto em produção ainda" : "Nenhum cliente encontrado"}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {clientesDoSetor.length === 0 && setor === "producao"
+                ? "Os projetos aparecem aqui quando o cliente envia o contrato assinado."
+                : "Ajuste a busca ou o filtro de período."}
+            </p>
           </div>
         ) : (
-          <div className="grid gap-3.5">
+          <div className="grid gap-3">
             {clientesFiltrados.map((cli) => (
               <ProjectListCard
                 key={cli.id}

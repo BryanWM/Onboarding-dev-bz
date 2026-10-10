@@ -8,15 +8,19 @@ import {
   Sparkles,
   Calendar,
   Layers,
+  FolderOpen,
+  ArrowRight,
+  PartyPopper,
 } from "lucide-react";
 import type { ClienteOnboarding } from "@/lib/mock-data";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceLinkPanel } from "./workspace-link-panel";
 import { WorkspacePresentationPanel } from "./workspace-presentation-panel";
 import { WorkspaceCadastralPanel } from "./workspace-cadastral-panel";
-import { WorkspaceContractPanel } from "./workspace-contract-panel";
+import { WorkspaceContractPanel, type ModeloContrato } from "./workspace-contract-panel";
 import { WorkspaceStageTab } from "./workspace-stage-tab";
 import { WorkspacePixPanel } from "./workspace-pix-panel";
+import { WorkspaceOnboardingPanel } from "./workspace-onboarding-panel";
 import {
   atualizarStatusPix,
   atualizarApresentacaoCliente,
@@ -28,12 +32,17 @@ import {
   emitirEEnviarContrato,
   listarModelosContrato,
   obterComprovantePix,
+  marcarOnboardingGestor,
+  anexarContratoManual,
+  liberarContratoCliente,
 } from "@/lib/supabase";
+import { setorDoCliente, type Setor } from "@/lib/fase-projeto";
 
 export type ClientTabId =
   | "1_inicio"
   | "2_apresentacao"
   | "3_pix"
+  | "3b_onboard"
   | "4_cadastro"
   | "5_contrato"
   | "6_boas_vindas"
@@ -43,29 +52,41 @@ export type ClientTabId =
 
 interface ClientFocusedViewProps {
   cliente: ClienteOnboarding;
+  setor?: Setor;
   onVoltar: () => void;
   onClienteAtualizado: () => Promise<void>;
+  onIrParaSetor?: (setor: Setor) => void;
 }
 
-const CLIENT_TABS: { id: ClientTabId; label: string; icon: React.ReactNode }[] = [
-  { id: "1_inicio", label: "1. Início", icon: <LayoutDashboard className="size-4" /> },
-  { id: "2_apresentacao", label: "2. Apresentação", icon: <FileText className="size-4" /> },
-  { id: "3_pix", label: "3. PIX", icon: <QrCode className="size-4" /> },
-  { id: "4_cadastro", label: "4. Dados Cadastrais", icon: <UserCheck className="size-4" /> },
-  { id: "5_contrato", label: "5. Contrato", icon: <ScrollText className="size-4" /> },
-  { id: "6_boas_vindas", label: "6. Boas-Vindas", icon: <Sparkles className="size-4" /> },
-  { id: "7_3_dias_uteis", label: "7. 3 Dias Úteis", icon: <Calendar className="size-4" /> },
-  { id: "8_estrategia", label: "8. Estratégia", icon: <Layers className="size-4" /> },
-  { id: "9_producao", label: "9. Produção", icon: <Layers className="size-4" /> },
+const CLIENT_TABS: { id: ClientTabId; label: string; icon: React.ReactNode; setor: Setor }[] = [
+  { id: "1_inicio", label: "0. Início", icon: <LayoutDashboard className="size-4" />, setor: "comercial" },
+  { id: "2_apresentacao", label: "1. Apresentação", icon: <FileText className="size-4" />, setor: "comercial" },
+  { id: "3_pix", label: "2. PIX", icon: <QrCode className="size-4" />, setor: "comercial" },
+  { id: "3b_onboard", label: "3. Onboard", icon: <FolderOpen className="size-4" />, setor: "comercial" },
+  { id: "4_cadastro", label: "4. Dados Cadastrais", icon: <UserCheck className="size-4" />, setor: "comercial" },
+  { id: "5_contrato", label: "5. Contrato", icon: <ScrollText className="size-4" />, setor: "comercial" },
+  { id: "6_boas_vindas", label: "6. Boas-Vindas", icon: <Sparkles className="size-4" />, setor: "producao" },
+  { id: "7_3_dias_uteis", label: "7. 3 Dias Úteis", icon: <Calendar className="size-4" />, setor: "producao" },
+  { id: "8_estrategia", label: "8. Estratégia", icon: <Layers className="size-4" />, setor: "producao" },
+  { id: "9_producao", label: "9. Produção", icon: <Layers className="size-4" />, setor: "producao" },
 ];
 
 export function ClientFocusedView({
   cliente,
+  setor = "comercial",
   onVoltar,
   onClienteAtualizado,
+  onIrParaSetor,
 }: ClientFocusedViewProps) {
-  const [activeTab, setActiveTab] = useState<ClientTabId>("1_inicio");
-  const [modelos, setModelos] = useState<{ id: string; titulo: string }[]>([]);
+  // Comercial ve as etapas 0-5; Producao, de Boas-vindas em diante.
+  const abas = CLIENT_TABS.filter((t) => t.setor === setor);
+  const [activeTab, setActiveTab] = useState<ClientTabId>(abas[0]!.id);
+  const [modelos, setModelos] = useState<ModeloContrato[]>([]);
+  const setorAtualDoCliente = setorDoCliente(cliente);
+
+  useEffect(() => {
+    if (!abas.some((t) => t.id === activeTab)) setActiveTab(abas[0]!.id);
+  }, [setor]);
   const [loadingAction, setLoadingAction] = useState(false);
   const [temComprovante, setTemComprovante] = useState(false);
 
@@ -176,49 +197,63 @@ export function ClientFocusedView({
       />
 
       {erroAcao && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div role="alert" className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {erroAcao}
         </div>
       )}
 
-      {/* Navegacao sequencial numerada de 1 a 9 com fontes aumentadas e scroll suave */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2.5 border-b border-border/60 scrollbar-thin">
-        {CLIENT_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer shrink-0 ${
-              activeTab === tab.id
-                ? "bg-primary text-primary-foreground font-bold shadow-md"
-                : "bg-secondary/30 text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-            }`}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      {setor === "comercial" && setorAtualDoCliente === "producao" && (
+        <div role="status" className="chip-ouro rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm flex items-center gap-2.5">
+            <PartyPopper className="size-4 shrink-0" />
+            <span>Contrato assinado pelo cliente. Este projeto já está com a <strong>Produção</strong>.</span>
+          </p>
+          {onIrParaSetor && (
+            <button
+              type="button"
+              onClick={() => onIrParaSetor("producao")}
+              className="glass-button h-9 px-4 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              Abrir na Produção <ArrowRight className="size-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Navegacao numerada: o setor ve so as suas etapas */}
+      {/* Abas sublinhadas: so o fio da aba ativa e o numero dela em dourado */}
+      <nav aria-label="Etapas do cliente" className="flex items-center gap-6 sm:gap-7 overflow-x-auto border-b border-[var(--linha)] scrollbar-none">
+        {abas.map((tab) => {
+          const [numero, nome] = tab.label.split(". ");
+          const ativa = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              aria-current={ativa ? "page" : undefined}
+              onClick={() => setActiveTab(tab.id)}
+              className={`h-12 -mb-px flex items-center gap-2 border-b-2 text-sm transition-colors cursor-pointer shrink-0 ${
+                ativa
+                  ? "border-[var(--ouro)] text-foreground font-semibold"
+                  : "border-transparent text-muted-foreground font-semibold hover:text-foreground"
+              }`}
+            >
+              <span className={`font-mono text-xs ${ativa ? "text-[var(--ouro)]" : "text-[#8c836f]"}`}>{numero}</span>
+              <span>{nome}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       <div className="space-y-6">
         {activeTab === "1_inicio" && (
           <WorkspaceLinkPanel
             link={link}
             clienteNome={cliente.nome_completo}
-            linkOnboardingForm={cliente.link_onboarding_form}
             loadingAction={loadingAction}
             onProrrogar={handleProrrogar}
             onToggleBloqueio={handleToggleBloqueio}
             onExcluir={handleExcluirLink}
-            onSalvarLinkOnboarding={(url) =>
-              executarAcao(async () => {
-                await atualizarProjeto(cliente.id, {
-                  nome_completo: cliente.nome_completo,
-                  link_onboarding_form: url || null,
-                });
-                await onClienteAtualizado();
-              })
-            }
           />
         )}
 
@@ -250,6 +285,31 @@ export function ClientFocusedView({
           />
         )}
 
+        {activeTab === "3b_onboard" && (
+          <WorkspaceOnboardingPanel
+            clienteNome={cliente.nome_completo}
+            linkOnboardingForm={cliente.link_onboarding_form}
+            abertoEm={cliente.onboarding_aberto_em}
+            confirmadoEm={cliente.onboarding_confirmado_em}
+            confirmadoPor={cliente.onboarding_confirmado_por}
+            onSalvarLinkOnboarding={(url) =>
+              executarAcao(async () => {
+                await atualizarProjeto(cliente.id, {
+                  nome_completo: cliente.nome_completo,
+                  link_onboarding_form: url || null,
+                });
+                await onClienteAtualizado();
+              })
+            }
+            onMarcarPreenchido={(preenchido) =>
+              executarAcao(async () => {
+                await marcarOnboardingGestor(cliente.id, preenchido);
+                await onClienteAtualizado();
+              })
+            }
+          />
+        )}
+
         {activeTab === "4_cadastro" && (
           <WorkspaceCadastralPanel
             dadosCadastrais={cliente.dados_cadastrais_cliente?.[0] || null}
@@ -262,8 +322,22 @@ export function ClientFocusedView({
           <WorkspaceContractPanel
             clienteId={cliente.id}
             clienteNome={cliente.nome_completo}
+            clienteEmail={cliente.email}
             contrato={cliente.contratos?.[0] || null}
             modelos={modelos}
+            dadosCadastrais={cliente.dados_cadastrais_cliente?.[0] || null}
+            onAnexarManual={(file, valor, dia) =>
+              executarAcao(async () => {
+                await anexarContratoManual(cliente.id, file, valor, dia);
+                await onClienteAtualizado();
+              })
+            }
+            onLiberarContrato={(contratoId) =>
+              executarAcao(async () => {
+                await liberarContratoCliente(contratoId);
+                await onClienteAtualizado();
+              })
+            }
             onEmitirContrato={(modId, val, dia) =>
               executarAcao(async () => {
                 await emitirEEnviarContrato(cliente.id, modId || null, val, dia);

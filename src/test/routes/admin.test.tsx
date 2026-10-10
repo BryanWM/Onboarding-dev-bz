@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { AdminDashboardApp } from "@/components/dashboard-admin/admin-dashboard-app";
 import { AuthProvider } from "@/lib/auth-context";
 
@@ -53,12 +53,20 @@ describe("Route /admin (Painel de Controle Integrado do Gestor)", () => {
       </AuthProvider>
     );
 
-    expect(screen.getByText("Gestão Operacional de Onboarding")).toBeInTheDocument();
+    // Mesmo acesso, duas secoes: comeca no Comercial
+    expect(screen.getByRole("button", { name: /Comercial/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Produção/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Novos Projetos")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Novo Projeto/i })).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("Loja Teste Alpha")).toBeInTheDocument();
     });
+
+    // Sem contrato assinado, o projeto nao aparece na Producao
+    fireEvent.click(screen.getByRole("button", { name: /Produção/ }));
+    expect(screen.queryByText("Loja Teste Alpha")).toBeNull();
+    expect(screen.getByText("Nenhum projeto em produção ainda")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Novo Projeto/i })).toBeNull();
   });
 });
