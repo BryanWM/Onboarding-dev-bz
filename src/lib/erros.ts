@@ -28,6 +28,9 @@ const MENSAGENS_ERRO: Record<string, string> = {
   // RPC/coluna inexistente: migration nao aplicada no banco
   "Could not find the function": "Recurso indisponível no servidor: o banco ainda não recebeu a atualização (migration pendente). Avise o gestor WRMax.",
   PGRST202: "Recurso indisponível no servidor: o banco ainda não recebeu a atualização (migration pendente). Avise o gestor WRMax.",
+  // tabela inexistente (ex.: checklist_producao sem a migration 20261011)
+  "Could not find the table": "Recurso indisponível no servidor: o banco ainda não recebeu a atualização (migration pendente). Avise o gestor WRMax.",
+  PGRST205: "Recurso indisponível no servidor: o banco ainda não recebeu a atualização (migration pendente). Avise o gestor WRMax.",
   "does not exist": "Recurso indisponível no servidor: o banco ainda não recebeu a atualização (migration pendente). Avise o gestor WRMax.",
 };
 

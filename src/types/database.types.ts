@@ -255,6 +255,24 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["gestores"]["Insert"]>;
         Relationships: [];
       };
+      checklist_producao: {
+        Row: {
+          cliente_id: string;
+          etapa: number;
+          item: string;
+          feito_em: string;
+          feito_por: string | null;
+        };
+        Insert: {
+          cliente_id: string;
+          etapa: number;
+          item: string;
+          feito_em?: string;
+          feito_por?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["checklist_producao"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
