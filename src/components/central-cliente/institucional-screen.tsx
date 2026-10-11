@@ -11,13 +11,20 @@ export const MENSAGEM_WHATSAPP = encodeURIComponent(
 export function InstitucionalScreen() {
   const whatsappUrl = `https://wa.me/${WHATSAPP_COMERCIAL}?text=${MENSAGEM_WHATSAPP}`;
 
+  const pilares = [
+    { icone: TrendingUp, titulo: "Escala e Aquisição", texto: "Gestão focada em CAC reduzido e maximização de faturamento previsível." },
+    { icone: Zap, titulo: "Velocidade de Execução", texto: "Implantação ágil com processos validados e acompanhamento diário." },
+    { icone: ShieldCheck, titulo: "Método Consolidado", texto: "Alinhamento estratégico, criativo e operacional em um só lugar." },
+  ];
+
   return (
-    <div className="relative min-h-screen text-foreground flex flex-col justify-between selection:bg-primary/20">
+    // Tela unica (h-dvh, sem rolagem): cabecalho, chamada, botao, pilares e rodape cabem juntos
+    <div className="relative h-dvh overflow-hidden text-foreground flex flex-col selection:bg-primary/20">
       <AmbientBackground />
       {/* Header Institucional */}
-      <div className="sticky top-0 z-20 px-4 sm:px-6 pt-4">
-        <header className="metal-panel !rounded-2xl mx-auto max-w-5xl px-5 py-4 flex items-center justify-between">
-          <LogoWrmax className="h-8" />
+      <div className="shrink-0 z-20 px-4 sm:px-6 pt-4">
+        <header className="metal-panel !rounded-2xl mx-auto max-w-5xl px-5 py-3 flex items-center justify-between">
+          <LogoWrmax className="h-7" />
           <a
             href={whatsappUrl}
             target="_blank"
@@ -32,30 +39,29 @@ export function InstitucionalScreen() {
       </div>
 
       {/* Conteudo Principal */}
-      <main className="flex-1 flex items-center justify-center px-6 py-16 sm:py-24 relative">
-
+      <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-6 py-4 relative">
         <div className="mx-auto max-w-3xl text-center relative z-10">
-          <div className="tag-ouro inline-flex items-center gap-2 mb-6">
+          <div className="tag-ouro inline-flex items-center gap-2 mb-[min(1.5rem,2.5vh)]">
             <Sparkles className="size-3.5" />
             Assessoria de Crescimento Exclusiva
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] text-foreground">
+          <h1 className="text-[clamp(1.5rem,min(6.4vw,6.4vh),3.4rem)] font-extrabold tracking-tight leading-[1.1] text-foreground">
             Deseja contratar os nossos serviços?{" "}
-            <span className="metal-text block mt-2 sm:inline sm:mt-0">Entre em contato aqui!</span>
+            <span className="metal-text block mt-1 sm:inline sm:mt-0">Entre em contato aqui!</span>
           </h1>
 
-          <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-[min(1.25rem,2.5vh)] text-[clamp(0.85rem,2.4vh,1.125rem)] text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Estruturamos estratégias de marketing, aquisição acelerada e posicionamento sob medida para empresas que buscam liderança e escala contínua.
           </p>
 
           {/* Botao de Acao Principal */}
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-[min(2rem,3.5vh)] flex justify-center">
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="metal-button w-full sm:w-auto min-w-[280px] h-13 px-8 rounded-xl text-primary-foreground font-semibold text-base flex items-center justify-center gap-3 shadow-xl transition-transform hover:scale-[1.02] cursor-pointer"
+              className="metal-button w-full sm:w-auto min-w-[280px] h-12 px-8 rounded-xl text-primary-foreground font-semibold text-base flex items-center justify-center gap-3 shadow-xl transition-transform hover:scale-[1.02] cursor-pointer"
             >
               <IconeWhatsApp className="size-5" />
               Contratar no WhatsApp
@@ -63,37 +69,31 @@ export function InstitucionalScreen() {
             </a>
           </div>
 
-          {/* Pilares de Diferenciacao */}
-          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-            <div className="metal-panel p-5">
-              <TrendingUp className="size-5 text-primary mb-3" />
-              <h2 className="text-sm font-semibold text-foreground">Escala e Aquisicao</h2>
-              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                Gestão focada em CAC reduzido e maximização de faturamento previsível.
-              </p>
-            </div>
-
-            <div className="metal-panel p-5">
-              <Zap className="size-5 text-primary mb-3" />
-              <h2 className="text-sm font-semibold text-foreground">Velocidade de Execucao</h2>
-              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                Implantação ágil com processos validados e acompanhamento diário.
-              </p>
-            </div>
-
-            <div className="metal-panel p-5">
-              <ShieldCheck className="size-5 text-primary mb-3" />
-              <h2 className="text-sm font-semibold text-foreground">Metodo Consolidado</h2>
-              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                Alinhamento estratégico, criativo e operacional em um só lugar.
-              </p>
-            </div>
+          {/* Pilares: no hover/foco o card sobe, inclina (flip) e se expande para cima
+              mostrando a descricao. A caixa externa tem altura fixa: nada empurra o layout. */}
+          <div className="mt-[min(3rem,5vh)] grid grid-cols-3 gap-2.5 sm:gap-4 text-left">
+            {pilares.map(({ icone: Icone, titulo, texto }) => (
+              <div key={titulo} className="pilar" tabIndex={0} aria-label={`${titulo}: ${texto}`}>
+                {/* copia invisivel do card fechado: define a altura reservada */}
+                <div aria-hidden="true" className="invisible metal-panel p-3 sm:p-5">
+                  <Icone className="size-4 sm:size-5 mb-2 sm:mb-3" />
+                  <p className="text-xs sm:text-sm font-semibold leading-snug">{titulo}</p>
+                </div>
+                <div className="pilar-card metal-panel p-3 sm:p-5">
+                  <Icone className="pilar-icone size-4 sm:size-5 text-primary mb-2 sm:mb-3" />
+                  <h2 className="text-xs sm:text-sm font-semibold text-foreground leading-snug">{titulo}</h2>
+                  <div className="pilar-desc">
+                    <p className="text-xs text-muted-foreground leading-relaxed">{texto}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </main>
 
       {/* Rodape */}
-      <footer className="px-6 py-8 text-center text-xs text-muted-foreground/70 font-mono">
+      <footer className="shrink-0 px-6 py-4 text-center text-[11px] sm:text-xs text-muted-foreground/70 font-mono">
         WRMAX Marketing &amp; Performance - Todos os direitos reservados
       </footer>
     </div>
