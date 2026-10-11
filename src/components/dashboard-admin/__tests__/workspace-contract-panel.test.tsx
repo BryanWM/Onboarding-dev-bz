@@ -27,10 +27,11 @@ describe("WorkspaceContractPanel", () => {
 
     const arquivo = new File(["%PDF"], "contrato-editado.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText("Arquivo do contrato"), { target: { files: [arquivo] } });
-    fireEvent.change(screen.getByLabelText("Valor mensal"), { target: { value: "2000" } });
+    fireEvent.change(screen.getByLabelText("Valor mensal (R$) *"), { target: { value: "2800" } });
+    fireEvent.change(screen.getByLabelText("Vencimento (dia) *"), { target: { value: "15" } });
     fireEvent.click(anexar);
 
-    await waitFor(() => expect(onAnexarManual).toHaveBeenCalledWith(arquivo, 2000, null));
+    await waitFor(() => expect(onAnexarManual).toHaveBeenCalledWith(arquivo, 2800, 15));
   });
 
   it("contrato manual nao liberado: cliente nao ve ate o gestor liberar", () => {

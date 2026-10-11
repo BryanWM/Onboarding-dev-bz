@@ -142,10 +142,11 @@ export function compilarVariaveisContrato(
   const nac = (dados.nacionalidade || "brasileiro(a)").trim();
   const estCivil = (dados.estadoCivil || "solteiro(a)").trim();
   const prof = (dados.profissao || "empresário(a)").trim();
-  const diaVenc = (dados.diaVencimento || "10").trim();
+  // Sem valor/vencimento informados a tag fica no texto (melhor do que um valor inventado)
+  const diaVenc = dados.diaVencimento?.trim() || "{{DIA_VENCIMENTO}}";
 
-  const valor = dados.valorMensal?.trim() || "1.500,00";
-  const valorExtenso = formatarValorPorExtenso(valor);
+  const valor = dados.valorMensal?.trim() || "{{VALOR_MENSAL}}";
+  const valorExtenso = dados.valorMensal?.trim() ? formatarValorPorExtenso(valor) : "{{VALOR_MENSAL_EXTENSO}}";
 
   return {
     // Tags oficiais do modelo WRMAX

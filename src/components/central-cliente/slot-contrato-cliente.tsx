@@ -77,7 +77,10 @@ export function SlotContratoCliente({
 
   const handleBaixarContratoParametrizado = async () => {
     if (!contrato) return;
-    if (contratoManual) return handleBaixarContratoManual();
+    // Anexo manual em PDF baixa como esta; em DOCX passa pela troca de tags (valor,
+    // vencimento, dados do cliente), com o arquivo anexado como modelo.
+    const manualDocx = contratoManual && /\.docx$/i.test(contrato.docx_nome || "");
+    if (contratoManual && !manualDocx) return handleBaixarContratoManual();
     setGerandoDocx(true);
 
     try {

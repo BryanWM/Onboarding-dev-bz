@@ -75,6 +75,12 @@ describe("contrato-generator module", () => {
     expect(mapa["{{ANO_ASSINATURA}}"]).toBe("2026");
   });
 
+  it("sem valor/vencimento informados as tags ficam no texto (nao inventa 1.500 / dia 10)", () => {
+    const mapa = compilarVariaveisContrato({ nome: "X", documento: "1", endereco: "E", cep: "C", email: "e@x" });
+    expect(mapa["{{VALOR_MENSAL}}"]).toBe("{{VALOR_MENSAL}}");
+    expect(mapa["{{DIA_VENCIMENTO}}"]).toBe("{{DIA_VENCIMENTO}}");
+  });
+
   it("should generate a valid DOCX blob and replace all placeholders in the real template", async () => {
     const templatePath = path.resolve(
       process.cwd(),
@@ -89,6 +95,8 @@ describe("contrato-generator module", () => {
       endereco: "Rua Teste, 100",
       cep: "64000-000",
       email: "lucas@teste.com",
+      valorMensal: "2.800,00",
+      diaVencimento: "15",
     };
 
     const { blob, fileName } = await gerarContratoDocx(dados, templateBuffer);
@@ -103,6 +111,9 @@ describe("contrato-generator module", () => {
     expect(xml).toContain("999.888.777-66");
     expect(xml).toContain("Cirurgião Dentista");
     expect(xml).toContain("lucas@teste.com");
+    // valor e vencimento informados pelo gestor, nunca o padrao 1.500/10
+    expect(xml).toContain("2.800,00");
+    expect(xml).not.toContain("1.500,00");
     // Verify no {{PLACEHOLDER}} remain
     const remainingPlaceholders = xml.match(/\{\{[A-Z_]+\}\}/g);
     expect(remainingPlaceholders).toBeNull();

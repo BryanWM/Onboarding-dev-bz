@@ -82,8 +82,6 @@ export function WorkspaceContractPanel({
 }: WorkspaceContractPanelProps) {
   const [modo, setModo] = useState<Modo>(contrato?.origem === "manual" ? "editar" : "automatico");
   const [modeloSelecionado, setModeloSelecionado] = useState<string>(contrato?.modelo_id || "");
-  const [valorMensal, setValorMensal] = useState<number>(contrato?.valor_mensal || 1500);
-  const [diaVencimento, setDiaVencimento] = useState<number>(contrato?.dia_vencimento || 10);
   const [emitindo, setEmitindo] = useState(false);
   const [baixando, setBaixando] = useState<string | null>(null);
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
@@ -95,8 +93,11 @@ export function WorkspaceContractPanel({
 
   // Anexo manual
   const [arquivoManual, setArquivoManual] = useState<File | null>(null);
-  const [valorManual, setValorManual] = useState("");
-  const [diaManual, setDiaManual] = useState("");
+  const [valorManual, setValorManual] = useState(contrato?.valor_mensal ? String(contrato.valor_mensal) : "");
+  const [diaManual, setDiaManual] = useState(contrato?.dia_vencimento ? String(contrato.dia_vencimento) : "");
+  // valores numericos para os modais (pre-visualizar / confirmar substituicao)
+  const valorMensal = Number(valorManual) || 0;
+  const diaVencimento = Number(diaManual) || 0;
   const [anexando, setAnexando] = useState(false);
   const [erroManual, setErroManual] = useState<string | null>(null);
 
@@ -171,6 +172,7 @@ export function WorkspaceContractPanel({
 
   const handleSubmitForm = (e: FormEvent) => {
     e.preventDefault();
+    if (!lerCondicoes()) return;
     liberado && !ehManual ? setModalConfirmacaoAberto(true) : executarEmissao();
   };
 
@@ -184,25 +186,35 @@ export function WorkspaceContractPanel({
     }
   };
 
+  // Valor e vencimento obrigatorios nos dois modos: vao para o arquivo (tags) e para o registro
+  const lerCondicoes = () => {
+    const valor = Number(valorManual);
+    const dia = Number(diaManual);
+    if (!valorManual || !(valor > 0)) {
+      setErroManual("Informe o valor mensal do contrato.");
+      return null;
+    }
+    if (!diaManual || !(dia >= 1 && dia <= 31)) {
+      setErroManual("Informe o dia de vencimento (1 a 31).");
+      return null;
+    }
+    setErroManual(null);
+    return { valor, dia };
+  };
+
   const handleAnexar = async (e: FormEvent) => {
     e.preventDefault();
     if (!arquivoManual || !onAnexarManual) return;
-    const valor = valorManual ? Number(valorManual) : null;
-    const dia = diaManual ? Number(diaManual) : null;
-    if (valor !== null && !(valor > 0)) return setErroManual("Informe um valor mensal maior que zero ou deixe em branco.");
-    if (dia !== null && !(dia >= 1 && dia <= 31)) return setErroManual("O dia de vencimento deve estar entre 1 e 31.");
-    setErroManual(null);
+    const cond = lerCondicoes();
+    if (!cond) return;
     setAnexando(true);
     try {
-      await onAnexarManual(arquivoManual, valor, dia);
+      await onAnexarManual(arquivoManual, cond.valor, cond.dia);
       setArquivoManual(null);
-      setValorManual("");
-      setDiaManual("");
     } finally {
       setAnexando(false);
     }
   };
-
   const handleLiberar = async () => {
     if (!contrato?.id || !onLiberarContrato) return;
     setLiberando(true);
@@ -418,17 +430,28 @@ export function WorkspaceContractPanel({
           </div>
         </div>
 
-        {modo === "automatico" ? (
-          <form onSubmit={handleSubmitForm} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_2fr] gap-4">
-              <div>
-                <label htmlFor="ct-valor" className={CLASSE_ROTULO}>Valor mensal (R$) *</label>
-                <input id="ct-valor" type="number" min={1} step="any" value={valorMensal} onChange={(e) => setValorMensal(Number(e.target.value))} className={CLASSE_CAMPO} required />
-              </div>
-              <div>
-                <label htmlFor="ct-dia" className={CLASSE_ROTULO}>Vencimento (dia) *</label>
-                <input id="ct-dia" type="number" min={1} max={31} value={diaVencimento} onChange={(e) => setDiaVencimento(Number(e.target.value))} className={CLASSE_CAMPO} required />
-              </div>
+        {/* Condicoes em um lugar so: valem para gerar automaticamente, baixar o modelo e anexar */}
+        <div className="space-y-2">
+          <span className="rotulo block">Condições deste contrato</span>
+          <div className="grid grid-cols-2 sm:max-w-md gap-3">
+            <div>
+              <label htmlFor="ct-valor" className={CLASSE_ROTULO}>Valor mensal (R$) *</label>
+              <input id="ct-valor" type="number" min={1} step="any" placeholder="Ex.: 2800" value={valorManual} onChange={(e) => setValorManual(e.target.value)} className={CLASSE_CAMPO} />
+            </div>
+            <div>
+              <label htmlFor="ct-dia" className={CLASSE_ROTULO}>Vencimento (dia) *</label>
+              <input id="ct-dia" type="number" min={1} max={31} placeholder="Ex.: 15" value={diaManual} onChange={(e) => setDiaManual(e.target.value)} className={CLASSE_CAMPO} />
+            </div>
+          </div>
+          {erroManual && (
+            <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive text-xs">
+              {erroManual}
+            </div>
+          )}
+        </div>
+
+        {modo === "automatico" ? (          <form onSubmit={handleSubmitForm} className="space-y-5">
+            <div className="sm:max-w-md">
               <div>
                 <label htmlFor="ct-modelo" className={CLASSE_ROTULO}>Modelo</label>
                 <select id="ct-modelo" value={modeloSelecionado} onChange={(e) => setModeloSelecionado(e.target.value)} className={`${CLASSE_CAMPO} cursor-pointer`}>
@@ -462,81 +485,71 @@ export function WorkspaceContractPanel({
             </div>
           </form>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* 1. Modelos para baixar */}
-            <div className="space-y-3">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">1. Baixe um modelo para editar</h3>
-                <p className="text-xs text-muted-foreground mt-1">Já vem com os dados de {clienteNome}.</p>
+          <div className="space-y-6">
+            <div className="grid gap-8 lg:grid-cols-2">
+              {/* 1. Modelos para baixar */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">1. Baixe um modelo para editar</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Já vem com os dados de {clienteNome}, o valor e o vencimento acima.
+                  </p>
+                </div>
+                <ul className="divide-y divide-[var(--linha)] border-y border-[var(--linha)]">
+                  {[{ id: "padrao", titulo: "Contrato Padrão WRMax", template_storage_path: null as string | null }, ...listaModelos].map((m) => (
+                    <li key={m.id} className="flex items-center justify-between gap-3 py-2.5">
+                      <span className="truncate text-sm text-foreground">{m.titulo}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cond = lerCondicoes();
+                          if (cond) baixarPreenchido(m.id, m.template_storage_path || null, cond.valor, cond.dia);
+                        }}
+                        disabled={baixando === m.id}
+                        aria-label={`Baixar ${m.titulo} preenchido`}
+                        className={linkTexto}
+                      >
+                        {baixando === m.id ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                        Baixar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="divide-y divide-[var(--linha)] border-y border-[var(--linha)]">
-                {[{ id: "padrao", titulo: "Contrato Padrão WRMax", template_storage_path: null as string | null }, ...listaModelos].map((m) => (
-                  <li key={m.id} className="flex items-center justify-between gap-3 py-2.5">
-                    <span className="truncate text-sm text-foreground">{m.titulo}</span>
-                    <button
-                      type="button"
-                      onClick={() => baixarPreenchido(m.id, m.template_storage_path || null)}
-                      disabled={baixando === m.id}
-                      aria-label={`Baixar ${m.titulo} preenchido`}
-                      className={linkTexto}
-                    >
-                      {baixando === m.id ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                      Baixar
-                    </button>
-                  </li>
-                ))}
-              </ul>
+
+              {/* 2. Anexar o contrato editado */}
+              <form onSubmit={handleAnexar} className="space-y-3.5">
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">2. Anexe o contrato editado</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se o DOCX ainda tiver tags (ex.: {"{{VALOR_MENSAL}}"}), elas são preenchidas com as condições acima quando o cliente baixar. O cliente só vê depois de você clicar em{" "}
+                    <strong className="text-foreground">Liberar para o cliente</strong>.
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-2 px-3.5 h-11 rounded-lg border border-dashed border-[var(--linha-2)] bg-[var(--campo)] text-sm text-muted-foreground cursor-pointer hover:border-primary/50 transition-colors">
+                  <Upload className="size-4 shrink-0 text-primary" />
+                  <span className="truncate">{arquivoManual ? arquivoManual.name : "Selecionar contrato (PDF ou DOCX, até 25MB)"}</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={(e) => setArquivoManual(e.target.files?.[0] || null)}
+                    className="sr-only"
+                    aria-label="Arquivo do contrato"
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={!arquivoManual || anexando || !onAnexarManual}
+                  className="metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {anexando ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                  <span>{anexando ? "Anexando..." : "Anexar contrato"}</span>
+                </button>
+              </form>
             </div>
-
-            {/* 2. Anexar o contrato editado */}
-            <form onSubmit={handleAnexar} className="space-y-3.5">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">2. Anexe o contrato editado</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  O cliente só vê depois de você clicar em <strong className="text-foreground">Liberar para o cliente</strong>.
-                </p>
-              </div>
-
-              {erroManual && (
-                <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive text-xs">
-                  {erroManual}
-                </div>
-              )}
-
-              <label className="flex items-center gap-2 px-3.5 h-11 rounded-lg border border-dashed border-[var(--linha-2)] bg-[var(--campo)] text-sm text-muted-foreground cursor-pointer hover:border-primary/50 transition-colors">
-                <Upload className="size-4 shrink-0 text-primary" />
-                <span className="truncate">{arquivoManual ? arquivoManual.name : "Selecionar contrato (PDF ou DOCX, até 25MB)"}</span>
-                <input
-                  type="file"
-                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  onChange={(e) => setArquivoManual(e.target.files?.[0] || null)}
-                  className="sr-only"
-                  aria-label="Arquivo do contrato"
-                />
-              </label>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="ct-valor-manual" className={CLASSE_ROTULO}>Valor mensal</label>
-                  <input id="ct-valor-manual" type="number" min={1} step="any" placeholder="Opcional" value={valorManual} onChange={(e) => setValorManual(e.target.value)} className={CLASSE_CAMPO} />
-                </div>
-                <div>
-                  <label htmlFor="ct-dia-manual" className={CLASSE_ROTULO}>Vencimento</label>
-                  <input id="ct-dia-manual" type="number" min={1} max={31} placeholder="Opcional" value={diaManual} onChange={(e) => setDiaManual(e.target.value)} className={CLASSE_CAMPO} />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={!arquivoManual || anexando || !onAnexarManual}
-                className="metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {anexando ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                <span>{anexando ? "Anexando..." : "Anexar contrato"}</span>
-              </button>
-            </form>
-          </div>
-        )}
+          </div>        )}
       </div>
       )}
 
