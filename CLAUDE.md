@@ -39,7 +39,7 @@ Layout em **acordeão** (`calcularEtapas` em `cliente-token-screen.tsx`): só um
 
 ### Painel admin (`src/components/dashboard-admin/admin-dashboard-app.tsx`)
 
-Um único acesso com duas seções no topo (`Setor`, `src/lib/fase-projeto.ts`, lembrada em `localStorage` `wrmax_setor`): **Comercial** (padrão; abas 0. Início → 5. Contrato, cria projetos) e **Produção** (abas 6. Boas-vindas → 9. Produção). O projeto passa para a Produção quando o cliente envia a via assinada (`status = 'assinado'` ou contrato com `docx_assinado_storage_path`) — não há coluna própria.
+Um único acesso com duas seções no topo (`Setor`, `src/lib/fase-projeto.ts`, lembrada em `localStorage` `wrmax_setor`): **Comercial** (padrão; abas 0. Início → 5. Contrato, cria projetos) e **Produção** (abas 6. Boas-vindas → 9. Produção). O cliente envia a via assinada (fica "aguardando validação", `status = 'assinado'`); na aba 5 o gestor **valida** (RPC `validar_contrato_assinado` → `contratos.validado_em`, `status = 'concluido'`) ou **apaga a via** para o cliente reenviar (`remover_via_assinada` + remoção do arquivo no storage). Contrato validado = **fechado**: aparece na Produção e continua no Comercial (lista mostra só o selo "Contrato fechado" e a ação "Excluir contrato", que pede digitar EXCLUIR). Regras em `src/lib/fase-projeto.ts` (`contratoFechado`, `clienteNoSetor`).
 
 Fluxo em uso: `ClientSelectorView` (filtra pelo setor) → `ClientFocusedView` (mostra só as abas do setor; painéis `workspace-*`) e `ContractModelsPanel`.
 - Criar cliente + link: `criarClienteComLink` (`src/lib/project-service.ts`).
@@ -93,7 +93,7 @@ Modelo de acesso (desde `20261007_seguranca_rls_storage.sql`):
 
 Buckets — todos **privados**: `apresentacoes-pdf`, `contratos-docx`, `modelos-contrato`, `contratos-assinados`, `comprovantes-pix`. O banco guarda `bucket/caminho` (não URL). Gestor abre por URL assinada (`useUrlArquivoGestor`, `src/lib/storage-refs.ts`). O cliente usa as server functions de `src/lib/arquivos-cliente.ts` (service_role, validam o token): `obterArquivosCliente` (URLs assinadas de 1h) e `prepararUploadCliente` (URL de upload assinada em `<cliente_id>/...`; depois a RPC `registrar_*` confere caminho e objeto).
 
-`validar_link_token` foi redefinida em várias migrations — a versão válida é a de `20261009_fluxo_comercial_producao.sql` (devolve `segundos_para_confirmar_onboarding = null` enquanto o cliente não abrir o formulário). Mesma coisa para `submeter_cadastro_cliente` e `confirmar_onboarding_form`.
+`validar_link_token` foi redefinida em várias migrations — a versão válida é a de `20261010_validacao_contrato.sql` (devolve `segundos_para_confirmar_onboarding = null` enquanto o cliente não abrir o formulário). Mesma coisa para `submeter_cadastro_cliente` e `confirmar_onboarding_form`.
 
 Para dar acesso a um novo gestor (SQL editor do Supabase):
 ```sql
@@ -114,7 +114,7 @@ Os três usam o mesmo Supabase. Último deploy de todos: 28/09/2026. Confirmar c
 
 - Build: passa.
 - Testes: 87/87 passam. Migrations testadas em PGlite (scripts fora do repo).
-- **Pendente no Supabase de teste e de produção:** aplicar `20261009_fluxo_comercial_producao.sql` (sem ela o modal do onboarding não registra a abertura, o CPF sem CNPJ é recusado e o anexo manual de contrato falha).
+- **Pendente no Supabase de teste e de produção:** aplicar `20261009_fluxo_comercial_producao.sql` e depois `20261010_validacao_contrato.sql` (sem ela o modal do onboarding não registra a abertura, o CPF sem CNPJ é recusado e o anexo manual de contrato falha).
 - Assinatura pelo gov.br (modal): adiada pela equipe.
 - TypeScript: ~60 erros, quase todos por causa do `tsconfig` estrito (`exactOptionalPropertyTypes`, `noPropertyAccessFromIndexSignature`). O build ignora. Bug real entre eles: `client-workspace-view.tsx` chama `LinkDeleteModal` sem a prop obrigatória `open`. `src/types/database.types.ts` agora segue o formato do supabase-js (antes tudo virava `never`).
 - Histórico do Git: o repo tem um único commit ("up do projeto"); o histórico anterior não veio junto.
