@@ -7,7 +7,7 @@ import { ClientSelectorView } from "./client-selector-view";
 import { ClientFocusedView } from "./client-focused-view";
 import { ContractModelsPanel } from "./contract-models-panel";
 import { LogOut, ArrowLeft, AlertCircle, RefreshCw } from "lucide-react";
-import { setorDoCliente, type Setor } from "@/lib/fase-projeto";
+import { clienteNoSetor, type Setor } from "@/lib/fase-projeto";
 import { AmbientBackground } from "@/components/ambient-background";
 import { NavbarSetores } from "./navbar-setores";
 
@@ -102,7 +102,7 @@ export function AdminDashboardApp() {
     setSetorState(novo);
     setViewMode("clientes");
     // Cliente aberto que nao pertence a nova secao volta para a lista
-    if (selectedCliente && setorDoCliente(selectedCliente) !== novo) handleVoltarParaLista();
+    if (selectedCliente && !clienteNoSetor(selectedCliente, novo)) handleVoltarParaLista();
     try {
       localStorage.setItem("wrmax_setor", novo);
     } catch {}

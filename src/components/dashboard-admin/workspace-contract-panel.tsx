@@ -13,6 +13,7 @@ import {
   Send,
   EyeOff,
   FileText,
+  Trash2,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { obterContratoAssinado } from "@/lib/supabase";
@@ -41,6 +42,7 @@ interface ContratoItem {
   docx_nome?: string | null | undefined;
   docx_assinado_storage_path?: string | null;
   docx_assinado_nome?: string | null;
+  validado_em?: string | null | undefined;
 }
 
 interface WorkspaceContractPanelProps {
@@ -53,6 +55,8 @@ interface WorkspaceContractPanelProps {
   onEmitirContrato: (modeloId: string | null, valorMensal: number, diaVencimento: number) => Promise<void> | void;
   onAnexarManual?: (file: File, valorMensal: number | null, diaVencimento: number | null) => Promise<void> | void;
   onLiberarContrato?: (contratoId: string) => Promise<void> | void;
+  onValidarVia?: (contratoId: string) => Promise<void> | void;
+  onRemoverVia?: (contratoId: string, refArquivo: string | null) => Promise<void> | void;
   loading?: boolean;
 }
 
@@ -72,6 +76,8 @@ export function WorkspaceContractPanel({
   onEmitirContrato,
   onAnexarManual,
   onLiberarContrato,
+  onValidarVia,
+  onRemoverVia,
   loading = false,
 }: WorkspaceContractPanelProps) {
   const [modo, setModo] = useState<Modo>(contrato?.origem === "manual" ? "editar" : "automatico");
@@ -83,6 +89,9 @@ export function WorkspaceContractPanel({
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
   const [modalPreviewAberto, setModalPreviewAberto] = useState(false);
   const [liberando, setLiberando] = useState(false);
+  const [validando, setValidando] = useState(false);
+  const [removendo, setRemovendo] = useState(false);
+  const [confirmandoRemocao, setConfirmandoRemocao] = useState(false);
 
   // Anexo manual
   const [arquivoManual, setArquivoManual] = useState<File | null>(null);
@@ -204,8 +213,33 @@ export function WorkspaceContractPanel({
     }
   };
 
-  const status = assinado
-    ? { tom: "verde" as const, texto: "Assinado pelo cliente" }
+  const validado = Boolean(contrato?.validado_em);
+
+  const handleValidar = async () => {
+    if (!contrato?.id || !onValidarVia) return;
+    setValidando(true);
+    try {
+      await onValidarVia(contrato.id);
+    } finally {
+      setValidando(false);
+    }
+  };
+
+  const handleRemover = async () => {
+    if (!contrato?.id || !onRemoverVia) return;
+    setRemovendo(true);
+    try {
+      await onRemoverVia(contrato.id, contrato.docx_assinado_storage_path || null);
+      setConfirmandoRemocao(false);
+    } finally {
+      setRemovendo(false);
+    }
+  };
+
+  const status = validado
+    ? { tom: "verde" as const, texto: "Contrato fechado" }
+    : assinado
+    ? { tom: "ambar" as const, texto: "Via assinada · aguardando validação" }
     : contrato && liberado
       ? { tom: "verde" as const, texto: "Liberado ao cliente" }
       : contrato
@@ -286,20 +320,64 @@ export function WorkspaceContractPanel({
           )}
 
           {contratoAssinado ? (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-              <span className="flex items-center gap-2.5 min-w-0 sm:mr-auto text-sm">
-                <FileCheck className="size-5 text-[#6fd39b] shrink-0" />
-                <span className="min-w-0">
-                  <span className="block text-foreground">Via assinada enviada pelo cliente!</span>
-                  <span className="block text-xs text-muted-foreground truncate">
-                    {contratoAssinado?.nome || "Contrato_Assinado_Cliente.pdf"} · projeto enviado para a Produção
+            <div className="space-y-4 border-t border-[var(--linha)] pt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                <span className="flex items-center gap-2.5 min-w-0 sm:mr-auto text-sm">
+                  <FileCheck className={`size-5 shrink-0 ${validado ? "text-[#6fd39b]" : "text-[#e7b45a]"}`} />
+                  <span className="min-w-0">
+                    <span className="block text-foreground">
+                      {validado ? "Contrato fechado" : "Via assinada enviada pelo cliente"}
+                    </span>
+                    <span className="block text-xs text-muted-foreground truncate">
+                      {contratoAssinado?.nome || "Contrato_Assinado_Cliente.pdf"}
+                      {validado
+                        ? ` · validado em ${new Date(contrato.validado_em as string).toLocaleString("pt-BR")} · também na Produção`
+                        : " · confira o arquivo antes de validar"}
+                    </span>
                   </span>
                 </span>
-              </span>
-              <a href={contratoAssinado?.url || "#"} download={contratoAssinado?.nome || "Contrato_Assinado.pdf"} target="_blank" rel="noreferrer" className={linkTexto}>
-                <Download className="size-4" />
-                Baixar contrato assinado
-              </a>
+                <a href={contratoAssinado?.url || "#"} download={contratoAssinado?.nome || "Contrato_Assinado.pdf"} target="_blank" rel="noreferrer" className={linkTexto}>
+                  <Download className="size-4" />
+                  Baixar via assinada
+                </a>
+              </div>
+
+              {!validado && (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                  <button
+                    type="button"
+                    onClick={handleValidar}
+                    disabled={validando || !onValidarVia}
+                    className="metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {validando ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
+                    <span>{validando ? "Validando..." : "Validar via assinada"}</span>
+                  </button>
+
+                  {confirmandoRemocao ? (
+                    <span className="flex flex-wrap items-center gap-3 text-sm">
+                      <span className="text-muted-foreground">Apagar a via para o cliente enviar de novo?</span>
+                      <button
+                        type="button"
+                        onClick={handleRemover}
+                        disabled={removendo}
+                        className="font-semibold text-red-300 hover:text-red-200 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {removendo ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                        Sim, apagar
+                      </button>
+                      <button type="button" onClick={() => setConfirmandoRemocao(false)} className={linkTexto}>
+                        Cancelar
+                      </button>
+                    </span>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmandoRemocao(true)} disabled={!onRemoverVia} className={linkTexto}>
+                      <Trash2 className="size-4" />
+                      Apagar via anexada
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             liberado && (
@@ -311,8 +389,8 @@ export function WorkspaceContractPanel({
           )}
         </div>
       )}
-
-      {/* Novo contrato */}
+      {/* Novo contrato (some quando o contrato ja esta fechado) */}
+      {!validado && (
       <div className={`space-y-5 ${contrato ? "border-t border-[var(--linha)] pt-6" : ""}`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <span className="rotulo">{contrato ? "Substituir contrato" : "Preparar contrato"}</span>
@@ -460,6 +538,7 @@ export function WorkspaceContractPanel({
           </div>
         )}
       </div>
+      )}
 
       <ContractPreviewModal
         open={modalPreviewAberto}

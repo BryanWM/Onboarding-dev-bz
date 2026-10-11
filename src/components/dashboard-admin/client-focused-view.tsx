@@ -35,8 +35,10 @@ import {
   marcarOnboardingGestor,
   anexarContratoManual,
   liberarContratoCliente,
+  validarViaAssinada,
+  removerViaAssinada,
 } from "@/lib/supabase";
-import { setorDoCliente, type Setor } from "@/lib/fase-projeto";
+import { contratoFechado, type Setor } from "@/lib/fase-projeto";
 
 export type ClientTabId =
   | "1_inicio"
@@ -82,7 +84,7 @@ export function ClientFocusedView({
   const abas = CLIENT_TABS.filter((t) => t.setor === setor);
   const [activeTab, setActiveTab] = useState<ClientTabId>(abas[0]!.id);
   const [modelos, setModelos] = useState<ModeloContrato[]>([]);
-  const setorAtualDoCliente = setorDoCliente(cliente);
+  const fechado = contratoFechado(cliente);
 
   useEffect(() => {
     if (!abas.some((t) => t.id === activeTab)) setActiveTab(abas[0]!.id);
@@ -193,11 +195,11 @@ export function ClientFocusedView({
         </div>
       )}
 
-      {setor === "comercial" && setorAtualDoCliente === "producao" && (
+      {setor === "comercial" && fechado && (
         <div role="status" className="chip-ouro rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-sm flex items-center gap-2.5">
             <PartyPopper className="size-4 shrink-0" />
-            <span>Contrato assinado pelo cliente. Este projeto já está com a <strong>Produção</strong>.</span>
+            <span>Contrato fechado. Este projeto também está com a <strong>Produção</strong>.</span>
           </p>
           {onIrParaSetor && (
             <button
@@ -326,6 +328,18 @@ export function ClientFocusedView({
             onLiberarContrato={(contratoId) =>
               executarAcao(async () => {
                 await liberarContratoCliente(contratoId);
+                await onClienteAtualizado();
+              })
+            }
+            onValidarVia={(contratoId) =>
+              executarAcao(async () => {
+                await validarViaAssinada(contratoId);
+                await onClienteAtualizado();
+              })
+            }
+            onRemoverVia={(contratoId, ref) =>
+              executarAcao(async () => {
+                await removerViaAssinada(contratoId, ref);
                 await onClienteAtualizado();
               })
             }

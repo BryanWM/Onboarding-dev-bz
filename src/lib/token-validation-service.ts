@@ -43,6 +43,7 @@ export interface ValidacaoTokenResultado {
     docx_nome?: string | null;
     docx_assinado_storage_path: string | null;
     docx_assinado_nome?: string | null;
+    validado_em?: string | null;
   } | null;
 }
 

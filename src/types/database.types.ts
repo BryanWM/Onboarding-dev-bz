@@ -207,6 +207,7 @@ export type Database = {
           docx_assinado_nome: string | null;
           enviado_ao_cliente_em: string | null;
           assinado_em: string | null;
+          validado_em: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -225,6 +226,7 @@ export type Database = {
           docx_assinado_nome?: string | null;
           enviado_ao_cliente_em?: string | null;
           assinado_em?: string | null;
+          validado_em?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -312,6 +314,14 @@ export type Database = {
         Returns: Json;
       };
       liberar_contrato_cliente: {
+        Args: { p_contrato_id: string };
+        Returns: Json;
+      };
+      validar_contrato_assinado: {
+        Args: { p_contrato_id: string };
+        Returns: Json;
+      };
+      remover_via_assinada: {
         Args: { p_contrato_id: string };
         Returns: Json;
       };

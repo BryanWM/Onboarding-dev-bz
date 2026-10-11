@@ -69,4 +69,56 @@ describe("WorkspaceContractPanel", () => {
     expect(screen.getByText("Liberado ao cliente")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Liberar para o cliente/ })).toBeNull();
   });
+
+  it("via assinada enviada: gestor valida ou apaga para o cliente reenviar", async () => {
+    const onValidarVia = vi.fn().mockResolvedValue(undefined);
+    const onRemoverVia = vi.fn().mockResolvedValue(undefined);
+    render(
+      <WorkspaceContractPanel
+        clienteId="cli-1"
+        contrato={{
+          id: "ct-3",
+          origem: "automatico",
+          liberado_para_cliente: true,
+          valor_mensal: 1500,
+          dia_vencimento: 10,
+          docx_assinado_storage_path: "contratos-assinados/cli-1/via.pdf",
+          docx_assinado_nome: "via.pdf",
+        }}
+        onEmitirContrato={vi.fn()}
+        onValidarVia={onValidarVia}
+        onRemoverVia={onRemoverVia}
+      />,
+    );
+
+    expect(screen.getByText("Via assinada · aguardando validação")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Validar via assinada/ }));
+    await waitFor(() => expect(onValidarVia).toHaveBeenCalledWith("ct-3"));
+
+    fireEvent.click(screen.getByRole("button", { name: /Apagar via anexada/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Sim, apagar/ }));
+    await waitFor(() => expect(onRemoverVia).toHaveBeenCalledWith("ct-3", "contratos-assinados/cli-1/via.pdf"));
+  });
+
+  it("contrato validado: fechado, sem validar/apagar e sem substituir", () => {
+    render(
+      <WorkspaceContractPanel
+        clienteId="cli-1"
+        contrato={{
+          id: "ct-4",
+          origem: "automatico",
+          liberado_para_cliente: true,
+          valor_mensal: 1500,
+          dia_vencimento: 10,
+          docx_assinado_storage_path: "contratos-assinados/cli-1/via.pdf",
+          validado_em: "2026-10-11T12:00:00Z",
+        }}
+        onEmitirContrato={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByText("Contrato fechado").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /Validar via assinada/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Apagar via anexada/ })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /Gerar automaticamente/ })).toBeNull();
+  });
 });

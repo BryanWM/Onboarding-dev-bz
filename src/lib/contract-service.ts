@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured, isModoDemo } from "./supabase-client";
 import { MOCK_MODELOS } from "./mock-data";
-import { montarRefStorage, extensaoSegura } from "./storage-refs";
+import { montarRefStorage, extensaoSegura, parseRefStorage } from "./storage-refs";
 import { mensagemDeErro } from "./erros";
 
 export interface ContratoEmitido {
@@ -131,6 +131,27 @@ export async function liberarContratoCliente(contratoId: string) {
     }
     return { sucesso: true, contrato };
   }
+  return { sucesso: true };
+}
+
+// Gestor confere a via assinada e fecha o contrato (o projeto passa a aparecer na Producao).
+export async function validarViaAssinada(contratoId: string) {
+  if (!exigirSupabaseOuDemo()) return { sucesso: true };
+  const { error } = await supabase.rpc("validar_contrato_assinado", { p_contrato_id: contratoId });
+  if (error) throw new Error(mensagemDeErro(error, "Não foi possível validar a via assinada."));
+  return { sucesso: true };
+}
+
+// Apaga a via enviada pelo cliente (arquivo e registro) para ele enviar de novo.
+export async function removerViaAssinada(contratoId: string, refArquivo?: string | null) {
+  if (!exigirSupabaseOuDemo()) return { sucesso: true };
+  const ref = parseRefStorage(refArquivo);
+  if (ref) {
+    // falha ao apagar o arquivo nao impede limpar o registro
+    await supabase.storage.from(ref.bucket).remove([ref.caminho]);
+  }
+  const { error } = await supabase.rpc("remover_via_assinada", { p_contrato_id: contratoId });
+  if (error) throw new Error(mensagemDeErro(error, "Não foi possível apagar a via assinada."));
   return { sucesso: true };
 }
 

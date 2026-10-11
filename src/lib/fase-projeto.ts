@@ -1,14 +1,22 @@
 import type { ClienteOnboarding } from "./mock-data";
 
-// Comercial cuida das etapas 0-5 (ate o contrato). O projeto passa para a
-// Producao quando o cliente envia a via assinada do contrato.
+// Comercial cuida de todos os projetos (etapas 0-5) e continua vendo os fechados.
+// A Producao recebe o projeto quando o contrato fecha: o cliente envia a via
+// assinada e o gestor a valida na aba Contrato.
 export type Setor = "comercial" | "producao";
 
-export function contratoAssinado(cliente: ClienteOnboarding) {
-  if (cliente.status === "assinado" || cliente.status === "concluido") return true;
-  return (cliente.contratos || []).some((c) => Boolean(c.docx_assinado_storage_path) || c.status_envio === "assinado");
+export function contratoFechado(cliente: ClienteOnboarding) {
+  if (cliente.status === "concluido") return true;
+  return (cliente.contratos || []).some((c) => Boolean(c.validado_em));
 }
 
-export function setorDoCliente(cliente: ClienteOnboarding): Setor {
-  return contratoAssinado(cliente) ? "producao" : "comercial";
+// Via enviada pelo cliente, ainda nao validada pelo gestor
+export function viaAguardandoValidacao(cliente: ClienteOnboarding) {
+  const c = cliente.contratos?.[0];
+  return Boolean(c?.docx_assinado_storage_path) && !c?.validado_em && !contratoFechado(cliente);
+}
+
+// O cliente aparece nesta secao?
+export function clienteNoSetor(cliente: ClienteOnboarding, setor: Setor) {
+  return setor === "comercial" ? true : contratoFechado(cliente);
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, Trash2, X, Loader2 } from "lucide-react";
 import { Portal } from "@/components/portal";
 import { useTravarRolagem } from "@/lib/use-travar-rolagem";
@@ -9,6 +9,8 @@ interface ProjectDeleteModalProps {
   onConfirm: () => Promise<void> | void;
   onClose: () => void;
   loading?: boolean;
+  // contrato fechado: exige digitar EXCLUIR antes de liberar o botao
+  contratoFechado?: boolean;
 }
 
 export function ProjectDeleteModal({
@@ -17,8 +19,14 @@ export function ProjectDeleteModal({
   onConfirm,
   onClose,
   loading = false,
+  contratoFechado = false,
 }: ProjectDeleteModalProps) {
   useTravarRolagem(open);
+  const [confirmacao, setConfirmacao] = useState("");
+  useEffect(() => {
+    if (!open) setConfirmacao("");
+  }, [open]);
+  const liberado = !contratoFechado || confirmacao.trim().toUpperCase() === "EXCLUIR";
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,7 +66,7 @@ export function ProjectDeleteModal({
           </div>
           <div>
             <h3 id="delete-project-title" className="font-bold text-base sm:text-lg text-foreground">
-              Excluir Projeto
+              {contratoFechado ? "Excluir contrato fechado" : "Excluir Projeto"}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Dupla verificação de exclusão definitiva
@@ -79,6 +87,21 @@ export function ProjectDeleteModal({
           </p>
         </div>
 
+        {contratoFechado && (
+          <div className="space-y-1.5">
+            <label htmlFor="confirmar-exclusao" className="block text-xs text-muted-foreground">
+              Este contrato já foi fechado e está na Produção. Digite <strong className="text-foreground font-mono">EXCLUIR</strong> para confirmar.
+            </label>
+            <input
+              id="confirmar-exclusao"
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+              autoComplete="off"
+              className="w-full h-10 px-3 rounded-lg border border-destructive/30 bg-[var(--campo)] text-sm font-mono text-foreground focus:outline-none focus:border-destructive"
+            />
+          </div>
+        )}
+
         <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2.5 pt-2">
           <button
             type="button"
@@ -91,11 +114,11 @@ export function ProjectDeleteModal({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || !liberado}
             className="px-5 py-2.5 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-colors disabled:opacity-50"
           >
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-            <span>{loading ? "Excluindo Projeto..." : "Sim, Excluir Projeto"}</span>
+            <span>{loading ? "Excluindo..." : contratoFechado ? "Excluir contrato" : "Sim, Excluir Projeto"}</span>
           </button>
         </div>
       </div>

@@ -44,6 +44,7 @@ export interface ClienteOnboarding {
     status_envio?: string;
     docx_nome?: string | null;
     assinado_em?: string | null;
+    validado_em?: string | null;
     created_at?: string;
     liberado_para_cliente?: boolean;
     docx_storage_path?: string | null;

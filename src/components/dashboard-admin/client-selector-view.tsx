@@ -6,7 +6,7 @@ import { ClientCreateModal } from "./client-create-modal";
 import { ClientEditModal } from "./client-edit-modal";
 import { ProjectListCard } from "./project-list-card";
 import { excluirProjeto, bloquearLink, desbloquearLink } from "@/lib/supabase";
-import { setorDoCliente, type Setor } from "@/lib/fase-projeto";
+import { clienteNoSetor, contratoFechado, type Setor } from "@/lib/fase-projeto";
 
 const FILTROS = [
   { id: "todas", rotulo: "Tudo" },
@@ -45,7 +45,7 @@ export function ClientSelectorView({
 
   // Cada secao ve so os seus projetos: Comercial ate o contrato assinado, depois Producao.
   const clientesDoSetor = useMemo(
-    () => (Array.isArray(clientes) ? clientes : []).filter((c) => c && setorDoCliente(c) === setor),
+    () => (Array.isArray(clientes) ? clientes : []).filter((c) => c && clienteNoSetor(c, setor)),
     [clientes, setor]
   );
 
@@ -260,7 +260,7 @@ export function ClientSelectorView({
             </p>
             <p className="text-muted-foreground text-xs">
               {clientesDoSetor.length === 0 && setor === "producao"
-                ? "Os projetos aparecem aqui quando o cliente envia o contrato assinado."
+                ? "Os projetos aparecem aqui quando o gestor valida o contrato assinado."
                 : "Ajuste a busca ou o filtro de período."}
             </p>
           </div>
@@ -304,6 +304,7 @@ export function ClientSelectorView({
       <ProjectDeleteModal
         open={modalExcluirAberto}
         clienteNome={clienteParaExcluir?.nome_completo || ""}
+        contratoFechado={clienteParaExcluir ? contratoFechado(clienteParaExcluir) : false}
         onClose={() => { setModalExcluirAberto(false); setClienteParaExcluir(null); }}
         onConfirm={handleConfirmarExclusao}
       />

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { cpfValido, cnpjValido, mascararCpf, mascararCnpj } from "../documentos";
-import { setorDoCliente } from "../fase-projeto";
+import { clienteNoSetor, contratoFechado, viaAguardandoValidacao } from "../fase-projeto";
 
 describe("documentos", () => {
   it("mascara CPF e CNPJ enquanto digita", () => {
@@ -18,17 +18,23 @@ describe("documentos", () => {
   });
 });
 
-describe("setorDoCliente", () => {
-  it("vai para a Producao so depois do contrato assinado", () => {
-    expect(setorDoCliente({ id: "1", nome_completo: "A", status: "contrato_enviado" })).toBe("comercial");
-    expect(setorDoCliente({ id: "1", nome_completo: "A", status: "assinado" })).toBe("producao");
-    expect(
-      setorDoCliente({
-        id: "1",
-        nome_completo: "A",
-        status: "contrato_enviado",
-        contratos: [{ id: "c", valor_mensal: null, dia_vencimento: null, docx_assinado_storage_path: "contratos-assinados/x.pdf" }],
-      }),
-    ).toBe("producao");
+describe("fase do projeto", () => {
+  const base = { id: "1", nome_completo: "A" };
+  const via = { id: "c", valor_mensal: null, dia_vencimento: null, docx_assinado_storage_path: "contratos-assinados/x.pdf" };
+
+  it("via enviada ainda nao fecha o contrato: fica no Comercial aguardando validacao", () => {
+    const cli = { ...base, status: "assinado", contratos: [via] };
+    expect(contratoFechado(cli)).toBe(false);
+    expect(viaAguardandoValidacao(cli)).toBe(true);
+    expect(clienteNoSetor(cli, "producao")).toBe(false);
+    expect(clienteNoSetor(cli, "comercial")).toBe(true);
+  });
+
+  it("contrato validado aparece na Producao e continua no Comercial", () => {
+    const cli = { ...base, status: "concluido", contratos: [{ ...via, validado_em: "2026-10-11T12:00:00Z" }] };
+    expect(contratoFechado(cli)).toBe(true);
+    expect(viaAguardandoValidacao(cli)).toBe(false);
+    expect(clienteNoSetor(cli, "producao")).toBe(true);
+    expect(clienteNoSetor(cli, "comercial")).toBe(true);
   });
 });

@@ -11,6 +11,8 @@ export {
   criarModeloContrato,
   anexarContratoManual,
   liberarContratoCliente,
+  validarViaAssinada,
+  removerViaAssinada,
 } from "./contract-service";
 export {
   validarLinkToken,

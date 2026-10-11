@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { ScrollText, Download, Upload, CheckCircle2, Loader2, Lock, AlertCircle } from "lucide-react";
 import { SlotHeader } from "./slot-header";
 import { formatCurrency } from "@/lib/utils";
@@ -19,6 +19,7 @@ interface SlotContratoClienteProps {
     docx_nome?: string | null | undefined;
     docx_assinado_storage_path: string | null;
     docx_assinado_nome?: string | null;
+    validado_em?: string | null | undefined;
   } | null;
   // URL ja resolvida (assinada) do modelo DOCX; null usa o modelo padrao do app
   modeloUrl?: string | null;
@@ -51,6 +52,12 @@ export function SlotContratoCliente({
   const [nomeArquivoAssinado, setNomeArquivoAssinado] = useState<string | null>(
     contrato?.docx_assinado_nome || null
   );
+  // O gestor pode apagar a via para o cliente reenviar: acompanha o que vem do servidor
+  useEffect(() => {
+    setAssinadoEnviado(Boolean(contrato?.docx_assinado_storage_path));
+    setNomeArquivoAssinado(contrato?.docx_assinado_nome || null);
+  }, [contrato?.docx_assinado_storage_path, contrato?.docx_assinado_nome]);
+
   const modeloDocx = modeloUrl && modeloUrl !== "#" ? modeloUrl : undefined;
 
   // Contrato anexado manualmente pelo gestor: baixa o arquivo como esta.
@@ -205,7 +212,7 @@ export function SlotContratoCliente({
                 {assinadoEnviado ? (
                   <span role="status" className="flex items-center gap-2 text-sm text-emerald-300 min-w-0">
                     <CheckCircle2 className="size-5 shrink-0" />
-                    <span className="font-semibold">Via assinada enviada!</span>
+                    <span className="font-semibold">{contrato.validado_em ? "Contrato validado pela WRMax!" : "Via assinada enviada!"}</span>
                     {nomeArquivoAssinado && <span className="text-xs text-muted-foreground truncate">{nomeArquivoAssinado}</span>}
                   </span>
                 ) : (
