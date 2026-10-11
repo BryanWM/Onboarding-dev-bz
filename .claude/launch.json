@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev-demo",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": ["-d", "ubuntu", "--", "bash", "-lc", "cd /home/bryan/projects/wrmax/Onboarding-dev-bz && VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npx vite dev --port 8090 --host 127.0.0.1"],
+      "port": 8090
+    }
+  ]
+}
