@@ -212,6 +212,106 @@
   border-color: rgba(232, 199, 122, 0.55);
 }
 
+/* Pilares da tela institucional: hover estilo macOS.
+   .pilar reserva a altura do card fechado (copia invisivel); .pilar-card fica ancorado embaixo e,
+   no hover/foco, sobe, inclina em perspectiva e cresce para cima revelando a descricao. */
+.pilar {
+  position: relative;
+  perspective: 900px;
+  outline: none;
+}
+.pilar-card {
+  position: absolute;
+  inset: auto 0 0 0;
+  transform-origin: 50% 100%;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1.2, 0.36, 1),
+    box-shadow 0.45s ease,
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+  will-change: transform;
+}
+.pilar-desc {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    margin-top 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s ease 0.05s;
+}
+.pilar-desc > p {
+  overflow: hidden;
+  min-height: 0;
+}
+.pilar-icone {
+  transition: transform 0.55s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+.pilar:hover,
+.pilar:focus {
+  z-index: 10;
+}
+.pilar:hover .pilar-card,
+.pilar:focus .pilar-card {
+  transform: translateY(-10px) rotateX(10deg) scale(1.04);
+  border-color: rgba(232, 199, 122, 0.4);
+  background-color: rgba(29, 26, 19, 0.96);
+  box-shadow:
+    0 22px 44px -12px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(232, 199, 122, 0.08),
+    0 10px 30px -10px rgba(201, 151, 58, 0.35);
+}
+.pilar:hover .pilar-desc,
+.pilar:focus .pilar-desc {
+  grid-template-rows: 1fr;
+  margin-top: 0.375rem;
+  opacity: 1;
+}
+.pilar:hover .pilar-icone,
+.pilar:focus .pilar-icone {
+  transform: translateY(-2px) scale(1.15) rotate(-6deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pilar-card,
+  .pilar-desc,
+  .pilar-icone {
+    transition: none;
+  }
+  .pilar:hover .pilar-card,
+  .pilar:focus .pilar-card {
+    transform: none;
+  }
+}
+
+/* Navbar Comercial · Producao: pilula que desliza (curva do macOS) e "respira" */
+.indicador-setor {
+  background: linear-gradient(180deg, rgba(232, 199, 122, 0.2), rgba(232, 199, 122, 0.08));
+  border: 1px solid rgba(232, 199, 122, 0.42);
+  box-shadow:
+    0 8px 24px -8px rgba(201, 151, 58, 0.45),
+    inset 0 1px 0 rgba(255, 240, 205, 0.18);
+  transform: translateX(var(--ind-x, 0px)) scaleX(var(--ind-s, 1));
+  transition: transform 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Conteudo da secao entra deslizando do lado da secao escolhida */
+@keyframes setor-da-direita {
+  from { opacity: 0; transform: translateX(56px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes setor-da-esquerda {
+  from { opacity: 0; transform: translateX(-56px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.entrada-setor-direita { animation: setor-da-direita 0.7s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.entrada-setor-esquerda { animation: setor-da-esquerda 0.7s cubic-bezier(0.32, 0.72, 0, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .indicador-setor { transition: none; }
+  .entrada-setor-direita,
+  .entrada-setor-esquerda { animation: none; }
+}
+
 @keyframes stage-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .stage-enter { animation: stage-in .38s ease-out both; }
 
