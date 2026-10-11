@@ -69,11 +69,11 @@ export function NavbarSetores({ setor, onTrocar, email, onSair }: NavbarSetoresP
         <span
           aria-hidden="true"
           className={`indicador-setor absolute top-1 left-1 h-10 w-[calc(50%-4px)] sm:w-[132px] rounded-[9px] ${
-            producao ? "[--ind-x:100%] sm:[--ind-x:282px]" : "[--ind-x:0px]"
+            producao ? "[--ind-x:100%] sm:[--ind-x:312px]" : "[--ind-x:0px]"
           } ${pulso ? "[--ind-s:1.16]" : "[--ind-s:1]"}`}
         />
         {aba("comercial", "Comercial", <Briefcase className="size-4" />)}
-        <span className="hidden sm:grid w-[150px] h-10 place-items-center">
+        <span className="hidden sm:grid w-[180px] h-10 place-items-center">
           <LogoWrmax className={`h-7 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${pulso ? "scale-[0.94]" : ""}`} />
         </span>
         {aba("producao", "Produção", <Rocket className="size-4" />)}
