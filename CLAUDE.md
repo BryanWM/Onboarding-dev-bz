@@ -35,7 +35,7 @@ São **5 slots** (o README fala em 4 — está desatualizado):
 4. `slot-dados-cadastrais` — formulário único (sem abas PF/PJ): nome e **CPF obrigatórios**, razão social e **CNPJ opcionais**, e-mail, telefone, endereço → RPC `submeter_cadastro_cliente` (valida CPF 11 dígitos / CNPJ 14 no banco; dígitos verificadores no front, `src/lib/documentos.ts`). Sem empresa, `razao_social` = nome.
 5. `slot-contrato-cliente` — bloqueado até o gestor liberar; contrato automático = DOCX montado com os dados; contrato manual (`origem = 'manual'`) = baixa o arquivo anexado. Cliente envia a via assinada.
 
-A tela faz polling a cada 3s (`validarLinkToken`) e escuta eventos `window` `wrmax:*`.
+Layout em **acordeão** (`calcularEtapas` em `cliente-token-screen.tsx`): só uma etapa aberta (a atual por padrão; ao concluir, a próxima abre sozinha); concluídas, futuras e o contrato bloqueado viram uma linha com título e tempo estimado. A tela faz polling a cada 3s (`validarLinkToken`) e escuta eventos `window` `wrmax:*`. Modais renderizam no `<body>` via `<Portal>` (`src/components/portal.tsx`) e travam a rolagem com `useTravarRolagem`.
 
 ### Painel admin (`src/components/dashboard-admin/admin-dashboard-app.tsx`)
 
