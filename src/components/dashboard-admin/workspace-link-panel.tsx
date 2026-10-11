@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Clock, Check, Copy, ShieldAlert, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, Copy, ShieldAlert, ShieldCheck, Trash2 } from "lucide-react";
 import { LinkDeleteModal } from "./link-delete-modal";
+import { CabecalhoPainel } from "./cabecalho-painel";
 
 // O link do Google Forms e a confirmacao do onboarding ficam na aba
 // "3. Onboard" (workspace-onboarding-panel.tsx).
@@ -65,91 +66,75 @@ export function WorkspaceLinkPanel({
     }
   };
 
+  const status = !link
+    ? null
+    : isBloqueado
+      ? { tom: "vermelho" as const, texto: "Acesso bloqueado" }
+      : isExpirado
+        ? { tom: "ambar" as const, texto: "Link expirado" }
+        : { tom: "verde" as const, texto: `Ativo · ${calcularTempoRestante()}` };
+
   return (
-    <section className="metal-panel p-5 sm:p-7 space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
-        <div className="flex items-center gap-2.5">
-          <Clock className="size-5 text-primary" />
-          <h2 className="text-base sm:text-lg font-bold text-foreground">
-            Link Temporário de Acesso do Cliente (Etapa 0)
-          </h2>
-        </div>
-        {link && (
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-mono self-start sm:self-auto ${
-              isBloqueado
-                ? "bg-destructive/15 text-destructive border border-destructive/30"
-                : isExpirado
-                ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-            }`}
-          >
-            {isBloqueado ? "BLOQUEADO" : isExpirado ? "EXPIRADO" : `ATIVO (${calcularTempoRestante()})`}
-          </span>
-        )}
-      </div>
+    <section className="metal-panel p-5 sm:p-7 space-y-6">
+      <CabecalhoPainel
+        etapa={0}
+        titulo="Link de acesso"
+        descricao="Envie este link ao cliente. Ele vale 5 horas e pode ser prorrogado."
+        status={status}
+      />
 
       {link ? (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-xl border border-border bg-background/80 text-sm font-mono">
-            <span className="truncate flex-1 text-foreground/90 font-medium">{linkUrl}</span>
+        <div className="space-y-5">
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <input
+              readOnly
+              value={linkUrl}
+              aria-label="Link do cliente"
+              className="flex-1 min-w-0 h-11 px-3.5 rounded-lg border border-[var(--linha-2)] bg-[var(--campo)] text-sm font-mono text-foreground"
+            />
             <button
               type="button"
               onClick={handleCopy}
-              className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer flex items-center justify-center gap-2 shrink-0 border border-border font-sans text-sm font-semibold shadow-sm"
+              className="metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer shrink-0"
             >
-              {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
               <span>{copied ? "Copiado!" : "Copiar Link"}</span>
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 pt-1">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onProrrogar(30)}
-                disabled={loadingAction}
-                className="h-10 px-3.5 rounded-lg border border-border bg-secondary/50 text-xs sm:text-sm font-mono hover:bg-secondary cursor-pointer transition-colors"
-              >
-                +30 min
-              </button>
-              <button
-                type="button"
-                onClick={() => onProrrogar(60)}
-                disabled={loadingAction}
-                className="h-10 px-3.5 rounded-lg border border-border bg-secondary/50 text-xs sm:text-sm font-mono hover:bg-secondary cursor-pointer transition-colors"
-              >
-                +1 hora
-              </button>
-            </div>
-
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
+            <span className="text-muted-foreground">Prorrogar:</span>
+            <button type="button" onClick={() => onProrrogar(30)} disabled={loadingAction} className="font-semibold text-foreground hover:text-[var(--ouro)] transition-colors cursor-pointer disabled:opacity-50">
+              +30 min
+            </button>
+            <button type="button" onClick={() => onProrrogar(60)} disabled={loadingAction} className="font-semibold text-foreground hover:text-[var(--ouro)] transition-colors cursor-pointer disabled:opacity-50">
+              +1 hora
+            </button>
+            <span className="hidden sm:block h-4 w-px bg-[var(--linha-2)]" aria-hidden="true" />
             <button
               type="button"
               onClick={onToggleBloqueio}
               disabled={loadingAction}
-              className={`h-10 px-4 rounded-lg text-xs sm:text-sm font-mono transition-colors flex items-center gap-2 cursor-pointer ${
-                isBloqueado
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
-                  : "bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25"
+              className={`font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 ${
+                isBloqueado ? "text-emerald-300 hover:text-emerald-200" : "text-muted-foreground hover:text-amber-300"
               }`}
             >
               {isBloqueado ? <ShieldCheck className="size-4" /> : <ShieldAlert className="size-4" />}
-              <span>{isBloqueado ? "Desbloquear Acesso" : "Bloquear Acesso"}</span>
+              {isBloqueado ? "Desbloquear acesso" : "Bloquear acesso"}
             </button>
-
             <button
               type="button"
               onClick={() => setModalDeleteAberto(true)}
               disabled={loadingAction}
-              className="h-10 px-4 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-xs sm:text-sm font-mono hover:bg-destructive/20 cursor-pointer ml-auto flex items-center gap-1.5"
+              className="sm:ml-auto font-semibold inline-flex items-center gap-1.5 text-muted-foreground hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50"
             >
               <Trash2 className="size-4" />
-              <span>Excluir Link</span>
+              Excluir link
             </button>
           </div>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Nenhum link temporário ativo para este cliente.</p>
+        <p className="text-sm text-muted-foreground">Nenhum link ativo para este cliente.</p>
       )}
 
       <LinkDeleteModal

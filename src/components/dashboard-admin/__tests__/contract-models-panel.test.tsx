@@ -19,8 +19,8 @@ describe("ContractModelsPanel", () => {
   it("should render contract models panel with merge tags guide", async () => {
     render(<ContractModelsPanel />);
 
-    expect(screen.getByText("Catálogo de Modelos DOCX")).toBeInTheDocument();
-    expect(screen.getByText("Modelos de Contrato e Tags de Mesclagem")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Modelos de Contrato" })).toBeInTheDocument();
+    expect(screen.getByText("Tags suportadas no DOCX")).toBeInTheDocument();
     expect(screen.getByText("{{RAZAO_SOCIAL}}")).toBeInTheDocument();
     expect(screen.getByText("{{CNPJ}}")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Novo Modelo/i })).toBeInTheDocument();

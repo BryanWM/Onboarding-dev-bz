@@ -20,6 +20,7 @@ import { useUrlArquivoGestor, obterUrlArquivoGestor } from "@/lib/storage-refs";
 import { gerarContratoDocx, baixarBlobNoNavegador, type DadosContratoForm } from "@/lib/contrato-generator";
 import { ContractPreviewModal } from "./contract-preview-modal";
 import { ContractConfirmModal } from "./contract-confirm-modal";
+import { CabecalhoPainel } from "./cabecalho-painel";
 
 export interface ModeloContrato {
   id: string;
@@ -204,211 +205,168 @@ export function WorkspaceContractPanel({
   };
 
   const status = assinado
-    ? { texto: "ASSINADO PELO CLIENTE", classe: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icone: <CheckCircle2 className="size-3.5" /> }
+    ? { tom: "verde" as const, texto: "Assinado pelo cliente" }
     : contrato && liberado
-      ? { texto: "LIBERADO AO CLIENTE", classe: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icone: <CheckCircle2 className="size-3.5" /> }
+      ? { tom: "verde" as const, texto: "Liberado ao cliente" }
       : contrato
-        ? { texto: "ANEXADO · AGUARDANDO LIBERAÇÃO", classe: "bg-amber-500/10 text-amber-300 border-amber-500/30", icone: <EyeOff className="size-3.5" /> }
-        : { texto: "AGUARDANDO EMISSÃO", classe: "text-muted-foreground border-border bg-secondary/30", icone: null };
+        ? { tom: "ambar" as const, texto: "Anexado · aguardando liberação" }
+        : { tom: "neutro" as const, texto: "Aguardando emissão" };
+
+  const resumoContrato = contrato
+    ? [
+        ehManual ? contrato.docx_nome || "Contrato anexado" : "Gerado automaticamente",
+        contrato.valor_mensal ? `${formatCurrency(contrato.valor_mensal)}/mês` : null,
+        contrato.dia_vencimento ? `vence todo dia ${contrato.dia_vencimento}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+
+  const linkTexto = "text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60";
 
   return (
     <section className="metal-panel p-5 sm:p-7 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
-        <div className="flex items-center gap-2.5">
-          <ScrollText className="size-5 text-primary" />
-          <h2 className="text-base sm:text-lg font-bold text-foreground">Contrato (Etapa 5)</h2>
-        </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-mono border flex items-center gap-1.5 self-start sm:self-auto ${status.classe}`}>
-          {status.icone}
-          {status.texto}
-        </span>
-      </div>
+      <CabecalhoPainel etapa={5} titulo="Contrato" descricao="Gere ou anexe o contrato e libere para o cliente assinar." status={status} />
 
       {/* Contrato atual */}
       {contrato && (
-        <div className="p-4 sm:p-5 rounded-xl border border-primary/30 bg-primary/5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1 min-w-0">
-              <span className="text-xs font-mono uppercase text-primary">
-                {ehManual ? "Contrato anexado manualmente" : "Contrato gerado automaticamente"}
-              </span>
-              <p className="text-sm font-semibold text-foreground break-words">
-                {[
-                  ehManual ? contrato.docx_nome || "Contrato" : null,
-                  contrato.valor_mensal ? `${formatCurrency(contrato.valor_mensal)}/mês` : null,
-                  contrato.dia_vencimento ? `Vencimento todo dia ${contrato.dia_vencimento}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              {!ehManual && (
-                <button
-                  type="button"
-                  onClick={() => setModalPreviewAberto(true)}
-                  className="glass-button px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer"
-                >
-                  <Eye className="size-4" />
-                  <span>Pré-visualizar</span>
-                </button>
-              )}
-              {ehManual ? (
-                <a
-                  href={contratoArquivoUrl || "#"}
-                  download={contrato.docx_nome || "Contrato"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="glass-button px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer"
-                >
-                  <Download className="size-4" />
-                  <span>Baixar arquivo</span>
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    baixarPreenchido(
-                      "atual",
-                      contrato.docx_storage_path?.startsWith("/") ? null : contrato.docx_storage_path || null,
-                      contrato.valor_mensal,
-                      contrato.dia_vencimento
-                    )
-                  }
-                  disabled={baixando === "atual"}
-                  className="glass-button px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-60"
-                >
-                  {baixando === "atual" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                  <span>Baixar DOCX</span>
-                </button>
-              )}
-            </div>
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+            <span className="flex items-center gap-2.5 min-w-0 sm:mr-auto text-sm text-foreground">
+              <FileText className="size-5 text-primary shrink-0" />
+              <span className="truncate">{resumoContrato}</span>
+            </span>
+            {!ehManual && (
+              <button type="button" onClick={() => setModalPreviewAberto(true)} className={linkTexto}>
+                <Eye className="size-4" />
+                Pré-visualizar
+              </button>
+            )}
+            {ehManual ? (
+              <a href={contratoArquivoUrl || "#"} download={contrato.docx_nome || "Contrato"} target="_blank" rel="noreferrer" className={linkTexto}>
+                <Download className="size-4" />
+                Baixar arquivo
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  baixarPreenchido(
+                    "atual",
+                    contrato.docx_storage_path?.startsWith("/") ? null : contrato.docx_storage_path || null,
+                    contrato.valor_mensal,
+                    contrato.dia_vencimento
+                  )
+                }
+                disabled={baixando === "atual"}
+                className={linkTexto}
+              >
+                {baixando === "atual" ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                Baixar DOCX
+              </button>
+            )}
           </div>
 
           {!liberado && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-[var(--linha)]">
-              <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2">
-                <EyeOff className="size-4 shrink-0" />
-                O cliente ainda não vê este contrato na Central.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
               <button
                 type="button"
                 onClick={handleLiberar}
                 disabled={liberando || !onLiberarContrato}
-                className="metal-button h-11 px-5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+                className="metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {liberando ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                 <span>{liberando ? "Liberando..." : "Liberar para o cliente"}</span>
               </button>
+              <span className="text-sm text-muted-foreground inline-flex items-center gap-2">
+                <EyeOff className="size-4 shrink-0" />
+                O cliente ainda não vê este contrato na Central.
+              </span>
             </div>
+          )}
+
+          {contratoAssinado ? (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+              <span className="flex items-center gap-2.5 min-w-0 sm:mr-auto text-sm">
+                <FileCheck className="size-5 text-[#6fd39b] shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-foreground">Via assinada enviada pelo cliente!</span>
+                  <span className="block text-xs text-muted-foreground truncate">
+                    {contratoAssinado?.nome || "Contrato_Assinado_Cliente.pdf"} · projeto enviado para a Produção
+                  </span>
+                </span>
+              </span>
+              <a href={contratoAssinado?.url || "#"} download={contratoAssinado?.nome || "Contrato_Assinado.pdf"} target="_blank" rel="noreferrer" className={linkTexto}>
+                <Download className="size-4" />
+                Baixar contrato assinado
+              </a>
+            </div>
+          ) : (
+            liberado && (
+              <p className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                <ScrollText className="size-4 shrink-0" />
+                Aguardando o cliente assinar e enviar pela Central.
+              </p>
+            )
           )}
         </div>
       )}
 
-      {/* Via assinada recebida do cliente */}
-      {contratoAssinado ? (
-        <div className="p-4 sm:p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-              <FileCheck className="size-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm sm:text-base text-emerald-300">Via assinada enviada pelo cliente!</p>
-              <p className="text-xs text-muted-foreground">
-                Arquivo: {contratoAssinado?.nome || "Contrato_Assinado_Cliente.pdf"} · projeto enviado para a Produção
-              </p>
-            </div>
+      {/* Novo contrato */}
+      <div className={`space-y-5 ${contrato ? "border-t border-[var(--linha)] pt-6" : ""}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <span className="rotulo">{contrato ? "Substituir contrato" : "Preparar contrato"}</span>
+          <div role="tablist" aria-label="Como preparar o contrato" className="inline-flex gap-1 p-1 rounded-[10px] bg-[var(--campo)] border border-[var(--linha)]">
+            {(
+              [
+                { id: "automatico", rotulo: "Gerar automaticamente", icone: <Wand2 className="size-4" /> },
+                { id: "editar", rotulo: "Editar um modelo", icone: <PenLine className="size-4" /> },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                role="tab"
+                aria-selected={modo === m.id}
+                onClick={() => setModo(m.id)}
+                className={`h-9 px-3.5 rounded-[7px] text-sm font-semibold inline-flex items-center gap-2 cursor-pointer transition-colors ${
+                  modo === m.id ? "chip-ouro" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {m.icone}
+                <span>{m.rotulo}</span>
+              </button>
+            ))}
           </div>
-          <a
-            href={contratoAssinado?.url || "#"}
-            download={contratoAssinado?.nome || "Contrato_Assinado.pdf"}
-            target="_blank"
-            rel="noreferrer"
-            className="glass-button inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold cursor-pointer shrink-0"
-          >
-            <Download className="size-4" />
-            <span>Baixar contrato assinado</span>
-          </a>
-        </div>
-      ) : (
-        contrato &&
-        liberado && (
-          <div className="p-3.5 rounded-lg border border-border/80 bg-secondary/15 text-xs text-muted-foreground flex items-center gap-2">
-            <ScrollText className="size-4 text-muted-foreground shrink-0" />
-            <span>Aguardando o cliente assinar e anexar a via pela Central do Cliente.</span>
-          </div>
-        )
-      )}
-
-      {/* Como preparar o contrato */}
-      <div className="space-y-4">
-        <div role="tablist" aria-label="Como preparar o contrato" className="grid grid-cols-2 gap-1 p-1 rounded-[10px] bg-[var(--campo)] border border-[var(--linha)]">
-          {(
-            [
-              { id: "automatico", rotulo: "Gerar automaticamente", icone: <Wand2 className="size-4" /> },
-              { id: "editar", rotulo: "Editar um modelo", icone: <PenLine className="size-4" /> },
-            ] as const
-          ).map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="tab"
-              aria-selected={modo === m.id}
-              onClick={() => setModo(m.id)}
-              className={`h-11 rounded-[7px] text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
-                modo === m.id ? "chip-ouro" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {m.icone}
-              <span>{m.rotulo}</span>
-            </button>
-          ))}
         </div>
 
         {modo === "automatico" ? (
-          <div className="space-y-5">
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              O sistema preenche o modelo com os dados cadastrais do cliente, o valor e o vencimento, e libera o contrato
-              na Central na mesma hora.
-            </p>
-
-            <div className="p-4 rounded-xl border border-primary/25 bg-primary/5 space-y-1">
-              <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
-                <ShieldCheck className="size-4 text-primary" />
-                <span>Cláusula Institucional de Contratada Fixa</span>
-              </div>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                CONTRATADA: K F G MOREIRA LTDA (WRMAX) - CNPJ 40.034.078/0001-41. A contratada é padronizada e imutável pelo
-                sistema. Os dados do contratante são mesclados na emissão.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmitForm} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="ct-valor" className={CLASSE_ROTULO}>Valor Mensal (R$) *</label>
-                  <input id="ct-valor" type="number" min={1} step="any" value={valorMensal} onChange={(e) => setValorMensal(Number(e.target.value))} className={CLASSE_CAMPO} required />
-                </div>
-                <div>
-                  <label htmlFor="ct-dia" className={CLASSE_ROTULO}>Dia de Vencimento da Fatura *</label>
-                  <input id="ct-dia" type="number" min={1} max={31} value={diaVencimento} onChange={(e) => setDiaVencimento(Number(e.target.value))} className={CLASSE_CAMPO} required />
-                </div>
-              </div>
-
+          <form onSubmit={handleSubmitForm} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_2fr] gap-4">
               <div>
-                <label htmlFor="ct-modelo" className={CLASSE_ROTULO}>Modelo de Minuta (DOCX)</label>
+                <label htmlFor="ct-valor" className={CLASSE_ROTULO}>Valor mensal (R$) *</label>
+                <input id="ct-valor" type="number" min={1} step="any" value={valorMensal} onChange={(e) => setValorMensal(Number(e.target.value))} className={CLASSE_CAMPO} required />
+              </div>
+              <div>
+                <label htmlFor="ct-dia" className={CLASSE_ROTULO}>Vencimento (dia) *</label>
+                <input id="ct-dia" type="number" min={1} max={31} value={diaVencimento} onChange={(e) => setDiaVencimento(Number(e.target.value))} className={CLASSE_CAMPO} required />
+              </div>
+              <div>
+                <label htmlFor="ct-modelo" className={CLASSE_ROTULO}>Modelo</label>
                 <select id="ct-modelo" value={modeloSelecionado} onChange={(e) => setModeloSelecionado(e.target.value)} className={`${CLASSE_CAMPO} cursor-pointer`}>
-                  <option value="">Contrato Padrão de Prestação de Serviços Digitais (WRMAX)</option>
+                  <option value="">Contrato Padrão WRMax</option>
                   {listaModelos.map((m) => (
                     <option key={m.id} value={m.id}>{m.titulo}</option>
                   ))}
                 </select>
               </div>
+            </div>
 
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
               <button
                 type="submit"
                 disabled={emitindo || loading}
-                className="metal-button w-full h-12 rounded-lg text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                className={`${contrato && liberado ? "glass-button" : "metal-button"} h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50`}
               >
                 {emitindo || loading ? <Loader2 className="size-4 animate-spin" /> : <FileCheck className="size-4" />}
                 <span>
@@ -419,34 +377,33 @@ export function WorkspaceContractPanel({
                       : "Emitir e Liberar Contrato ao Cliente"}
                 </span>
               </button>
-            </form>
-          </div>
+              <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5" title="A contratada é fixa no contrato">
+                <ShieldCheck className="size-3.5 shrink-0" />
+                Contratada fixa: K F G MOREIRA LTDA (WRMAX) · CNPJ 40.034.078/0001-41
+              </span>
+            </div>
+          </form>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-8 lg:grid-cols-2">
             {/* 1. Modelos para baixar */}
-            <div className="glass-soft rounded-xl p-4 sm:p-5 space-y-3">
+            <div className="space-y-3">
               <div>
                 <h3 className="text-sm font-bold text-foreground">1. Baixe um modelo para editar</h3>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  O arquivo já vem com os dados cadastrais de {clienteNome}. Faça as edições fora do sistema.
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Já vem com os dados de {clienteNome}.</p>
               </div>
-              <ul className="space-y-2">
+              <ul className="divide-y divide-[var(--linha)] border-y border-[var(--linha)]">
                 {[{ id: "padrao", titulo: "Contrato Padrão WRMax", template_storage_path: null as string | null }, ...listaModelos].map((m) => (
-                  <li key={m.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[var(--linha)] bg-[var(--card)]">
-                    <span className="flex items-center gap-2 min-w-0 text-sm text-foreground">
-                      <FileText className="size-4 text-primary shrink-0" />
-                      <span className="truncate">{m.titulo}</span>
-                    </span>
+                  <li key={m.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <span className="truncate text-sm text-foreground">{m.titulo}</span>
                     <button
                       type="button"
                       onClick={() => baixarPreenchido(m.id, m.template_storage_path || null)}
                       disabled={baixando === m.id}
                       aria-label={`Baixar ${m.titulo} preenchido`}
-                      className="glass-button h-9 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-60"
+                      className={linkTexto}
                     >
-                      {baixando === m.id ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-                      <span>Baixar</span>
+                      {baixando === m.id ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                      Baixar
                     </button>
                   </li>
                 ))}
@@ -454,11 +411,11 @@ export function WorkspaceContractPanel({
             </div>
 
             {/* 2. Anexar o contrato editado */}
-            <form onSubmit={handleAnexar} className="glass-soft rounded-xl p-4 sm:p-5 space-y-4">
+            <form onSubmit={handleAnexar} className="space-y-3.5">
               <div>
                 <h3 className="text-sm font-bold text-foreground">2. Anexe o contrato editado</h3>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Só o gestor anexa. O cliente vê o contrato depois que você clicar em <strong className="text-foreground">Liberar para o cliente</strong>.
+                <p className="text-xs text-muted-foreground mt-1">
+                  O cliente só vê depois de você clicar em <strong className="text-foreground">Liberar para o cliente</strong>.
                 </p>
               </div>
 
@@ -468,7 +425,7 @@ export function WorkspaceContractPanel({
                 </div>
               )}
 
-              <label className="flex items-center gap-2 px-3.5 h-11 rounded-lg border border-dashed border-[var(--linha-2)] bg-background text-sm text-muted-foreground cursor-pointer hover:border-primary/50 transition-colors">
+              <label className="flex items-center gap-2 px-3.5 h-11 rounded-lg border border-dashed border-[var(--linha-2)] bg-[var(--campo)] text-sm text-muted-foreground cursor-pointer hover:border-primary/50 transition-colors">
                 <Upload className="size-4 shrink-0 text-primary" />
                 <span className="truncate">{arquivoManual ? arquivoManual.name : "Selecionar contrato (PDF ou DOCX, até 25MB)"}</span>
                 <input
@@ -494,7 +451,7 @@ export function WorkspaceContractPanel({
               <button
                 type="submit"
                 disabled={!arquivoManual || anexando || !onAnexarManual}
-                className="metal-button w-full h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {anexando ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 <span>{anexando ? "Anexando..." : "Anexar contrato"}</span>

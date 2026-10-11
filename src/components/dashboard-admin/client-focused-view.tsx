@@ -184,16 +184,7 @@ export function ClientFocusedView({
         clienteEmail={cliente.email}
         clienteWhatsapp={cliente.whatsapp}
         status={cliente.status}
-        pixPago={Boolean(cliente.pix_pago)}
-        temComprovantePix={temComprovante}
-        loadingAction={loadingAction}
         onBack={onVoltar}
-        onTogglePix={(pago) =>
-          executarAcao(async () => {
-            await atualizarStatusPix(cliente.id, pago);
-            await onClienteAtualizado();
-          })
-        }
       />
 
       {erroAcao && (

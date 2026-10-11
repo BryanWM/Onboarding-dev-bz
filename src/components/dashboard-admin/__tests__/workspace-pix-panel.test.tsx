@@ -12,7 +12,7 @@ describe("WorkspacePixPanel", () => {
       />
     );
 
-    expect(screen.getByText(/Gestão Financeira & Comprovante PIX/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "PIX" })).toBeInTheDocument();
     expect(screen.getByText(/Empresa Parceira/i)).toBeInTheDocument();
     expect(screen.getByText(/Chave PIX \(E-mail\)/i)).toBeInTheDocument();
   });

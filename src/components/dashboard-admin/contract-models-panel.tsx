@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { FileText, Upload, PlusCircle, Check, Copy, Tag, RefreshCw } from "lucide-react";
+import { FileText, Upload, PlusCircle, Check, Copy, Tag, RefreshCw, ChevronDown } from "lucide-react";
+import { useTravarRolagem } from "@/lib/use-travar-rolagem";
 import { listarModelosContrato, criarModeloContrato } from "@/lib/supabase";
+import { Portal } from "@/components/portal";
 
 const TAGS_DISPONIVEIS = [
   { tag: "{{NOME_COMPLETO_OU_RAZAO_SOCIAL}}", desc: "Nome (PF) ou Razao Social (PJ)" },
@@ -22,6 +24,7 @@ export function ContractModelsPanel() {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
+  useTravarRolagem(novoModalOpen);
 
   const carregar = async () => {
     setLoading(true);
@@ -64,110 +67,88 @@ export function ContractModelsPanel() {
   };
 
   return (
-    <section className="metal-panel p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-primary font-mono text-xs uppercase tracking-wider mb-1">
-            <FileText className="size-4" />
-            Catálogo de Modelos DOCX
-          </div>
-          <h2 className="text-xl font-bold text-foreground">
-            Modelos de Contrato e Tags de Mesclagem
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Gerencie minutas contratuais pré-aprovadas com tags automáticas de substituição.
-          </p>
+    <section className="metal-panel p-5 sm:p-7 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="space-y-1">
+          <span className="rotulo block">Catálogo</span>
+          <h2 className="text-xl font-bold text-foreground tracking-tight">Modelos de Contrato</h2>
+          <p className="text-sm text-muted-foreground">Minutas DOCX com tags que o sistema preenche com os dados do cliente.</p>
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4 shrink-0">
           <button
             type="button"
             onClick={carregar}
-            className="h-9 px-3 rounded-lg border border-border bg-secondary/30 hover:bg-secondary text-xs text-muted-foreground hover:text-foreground font-mono transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5 cursor-pointer"
             title="Recarregar modelos"
           >
-            <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
             Atualizar
           </button>
           <button
             type="button"
             onClick={() => setNovoModalOpen(true)}
-            className="metal-button h-9 px-4 rounded-lg text-xs font-semibold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md"
+            className="metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center gap-2 cursor-pointer"
           >
-            <PlusCircle className="size-3.5" />
+            <PlusCircle className="size-4" />
             Novo Modelo
           </button>
         </div>
       </div>
 
-      {/* Aviso institucional sobre a Contratada */}
-      <div className="rounded-lg border border-primary/25 bg-primary/10 p-3 text-xs text-muted-foreground">
-        <strong className="text-foreground">CONTRATADA PADRÃO:</strong> K F G MOREIRA LTDA - WRMAX (CNPJ 40.034.078/0001-41). Permanece fixa por padrão no cabeçalho de todos os contratos e não necessita de preenchimento ou tags.
-      </div>
-
-      {/* Guia Didatico de Tags de Substituicao */}
-      <div className="rounded-lg border border-border/70 bg-secondary/15 p-4 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-          <Tag className="size-3.5 text-primary" />
-          Tags Suportadas no Arquivo DOCX (Clique para copiar)
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {TAGS_DISPONIVEIS.map(({ tag, desc }) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => handleCopy(tag)}
-              className="flex flex-col items-start p-2 rounded border border-border/60 bg-background/50 hover:border-primary/50 text-left transition-colors cursor-pointer group"
-              title={desc}
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className="font-mono text-[11px] text-primary group-hover:text-primary">
-                  {tag}
-                </span>
-                {copiedTag === tag ? (
-                  <Check className="size-3 text-emerald-400" />
-                ) : (
-                  <Copy className="size-3 text-muted-foreground opacity-40 group-hover:opacity-100" />
-                )}
+      {/* Lista de modelos */}
+      {modelos.length > 0 ? (
+        <ul className="divide-y divide-[var(--linha)] border-y border-[var(--linha)]">
+          {modelos.map((m) => (
+            <li key={m.id} className="flex items-center gap-3 py-3.5 min-w-0">
+              <FileText className="size-5 text-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-foreground truncate">{m.titulo}</p>
+                {m.descricao && <p className="text-xs text-muted-foreground truncate">{m.descricao}</p>}
               </div>
-              <span className="text-[10px] text-muted-foreground truncate w-full mt-0.5">
-                {desc}
+              <span className="inline-flex items-center gap-[7px] h-7 px-3 rounded-full border border-[var(--linha-2)] text-xs text-foreground shrink-0">
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-[#6fd39b]" />
+                Ativo
               </span>
-            </button>
+            </li>
           ))}
-        </div>
-      </div>
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nenhum modelo cadastrado. O contrato padrão WRMax continua disponível.</p>
+      )}
 
-      {/* Lista de Modelos */}
-      <div className="space-y-3">
-        {modelos.map((m) => (
-          <div
-            key={m.id}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-border/60 bg-secondary/20 hover:border-border transition-colors"
-          >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm text-foreground">{m.titulo}</span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  ATIVO
+      {/* Ajuda: tags e contratada, recolhidas */}
+      <details className="group">
+        <summary className="text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer list-none inline-flex items-center gap-1.5">
+          <Tag className="size-4" />
+          Tags suportadas no DOCX
+          <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {TAGS_DISPONIVEIS.map(({ tag, desc }) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleCopy(tag)}
+                className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-[var(--linha)] hover:border-[var(--linha-2)] text-left transition-colors cursor-pointer"
+                title={desc}
+              >
+                <span className="min-w-0">
+                  <span className="block font-mono text-[11px] text-primary truncate">{tag}</span>
+                  <span className="block text-[11px] text-muted-foreground truncate">{desc}</span>
                 </span>
-              </div>
-              <p className="text-xs text-muted-foreground">{m.descricao || "Sem descrição"}</p>
-              <p className="text-[10px] font-mono text-muted-foreground/80">
-                Arquivo: {m.template_storage_path}
-              </p>
-            </div>
-            <div className="text-right shrink-0">
-              <span className="text-[11px] font-mono text-muted-foreground">
-                DOCX Modelo
-              </span>
-            </div>
+                {copiedTag === tag ? <Check className="size-3.5 text-emerald-400 shrink-0" /> : <Copy className="size-3.5 text-muted-foreground shrink-0" />}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-
+          <p className="text-xs text-muted-foreground">
+            Contratada fixa em todos os contratos: K F G MOREIRA LTDA - WRMAX (CNPJ 40.034.078/0001-41), sem precisar de tag.
+          </p>
+        </div>
+      </details>
       {/* Modal de Novo Modelo */}
       {novoModalOpen && (
+        <Portal>
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="metal-panel max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
@@ -242,6 +223,7 @@ export function ContractModelsPanel() {
             </form>
           </div>
         </div>
+        </Portal>
       )}
     </section>
   );

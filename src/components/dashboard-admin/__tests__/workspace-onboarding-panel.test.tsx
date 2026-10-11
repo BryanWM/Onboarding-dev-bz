@@ -13,7 +13,7 @@ describe("WorkspaceOnboardingPanel", () => {
     const onMarcar = vi.fn().mockResolvedValue(undefined);
     render(<WorkspaceOnboardingPanel {...base} onMarcarPreenchido={onMarcar} />);
 
-    expect(screen.getByText("AGUARDANDO PREENCHIMENTO")).toBeInTheDocument();
+    expect(screen.getByText("Aguardando preenchimento")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /marcar como preenchido/i }));
     await waitFor(() => expect(onMarcar).toHaveBeenCalledWith(true));
   });
@@ -29,7 +29,7 @@ describe("WorkspaceOnboardingPanel", () => {
       />,
     );
 
-    expect(screen.getByText("ONBOARDING PREENCHIDO")).toBeInTheDocument();
+    expect(screen.getByText("Onboarding preenchido")).toBeInTheDocument();
     expect(screen.getByText("Confirmado pelo cliente na Central")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /desfazer confirmação/i }));
     await waitFor(() => expect(onMarcar).toHaveBeenCalledWith(false));

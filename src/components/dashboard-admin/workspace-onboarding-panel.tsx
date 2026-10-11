@@ -1,17 +1,6 @@
 import { useState } from "react";
-import {
-  Check,
-  CheckCircle2,
-  Clock,
-  Copy,
-  Edit2,
-  ExternalLink,
-  FolderOpen,
-  Loader2,
-  RotateCcw,
-  Save,
-  UserCheck,
-} from "lucide-react";
+import { Check, CheckCircle2, Clock, Copy, Edit2, ExternalLink, Loader2, RotateCcw, Save } from "lucide-react";
+import { CabecalhoPainel } from "./cabecalho-painel";
 
 const FORM_ONBOARDING_DEFAULT =
   "https://docs.google.com/forms/d/e/1FAIpQLSdyJjJicNhDIqPgkUSgEHwovvbywPsazFhWcPV3mJCVkobErg/viewform";
@@ -69,146 +58,102 @@ export function WorkspaceOnboardingPanel({
     }
   };
 
+  const quando = (iso?: string | null) => (iso ? new Date(iso).toLocaleString("pt-BR") : "");
+
   return (
     <section className="metal-panel p-5 sm:p-7 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
-        <div className="flex items-center gap-2.5">
-          <FolderOpen className="size-5 text-primary" />
-          <h2 className="text-base sm:text-lg font-bold text-foreground">Onboarding do Cliente (Etapa 3)</h2>
-        </div>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-mono self-start sm:self-auto flex items-center gap-1.5 ${
-            confirmado
-              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-              : "bg-secondary text-muted-foreground border border-border"
-          }`}
-        >
-          {confirmado ? <CheckCircle2 className="size-3.5" /> : <Clock className="size-3.5" />}
-          {confirmado ? "ONBOARDING PREENCHIDO" : "AGUARDANDO PREENCHIMENTO"}
-        </span>
-      </div>
+      <CabecalhoPainel
+        etapa={3}
+        titulo="Onboarding"
+        descricao="Formulário do Google que o cliente responde pela Central."
+        status={confirmado ? { tom: "verde", texto: "Onboarding preenchido" } : { tom: "neutro", texto: "Aguardando preenchimento" }}
+      />
 
-      {/* Confirmacao do preenchimento */}
-      <div className="rounded-xl border border-border/80 bg-secondary/20 p-5 sm:p-6 space-y-4">
-        <h3 className="font-bold text-sm text-foreground flex items-center gap-2 border-b border-border/60 pb-3">
-          <UserCheck className="size-4 text-primary" />
-          Confirmação de Preenchimento do Formulário
-        </h3>
-
+      {/* Situacao + acao */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {confirmado ? (
-          <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-emerald-400">
-              <CheckCircle2 className="size-5 shrink-0" />
-              <div className="text-sm">
-                <p className="font-semibold">
-                  {confirmadoPor === "gestor" ? "Marcado como preenchido pelo gestor" : "Confirmado pelo cliente na Central"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Em {new Date(confirmadoEm as string).toLocaleString("pt-BR")}
-                </p>
-              </div>
+          <div className="flex items-center gap-3 text-sm min-w-0">
+            <CheckCircle2 className="size-5 text-[#6fd39b] shrink-0" />
+            <div>
+              <p className="text-foreground">
+                {confirmadoPor === "gestor" ? "Marcado como preenchido pelo gestor" : "Confirmado pelo cliente na Central"}
+              </p>
+              <p className="text-xs text-muted-foreground">Em {quando(confirmadoEm)}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleMarcar(false)}
-              disabled={marcando}
-              className="px-3.5 py-2 rounded-lg border border-border bg-secondary/50 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
-            >
-              {marcando ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
-              <span>Desfazer confirmação</span>
-            </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="p-4 rounded-xl border border-dashed border-border/80 bg-background/50 text-xs sm:text-sm text-muted-foreground flex items-start gap-2.5">
-              <Clock className="size-4 shrink-0 mt-0.5" />
-              <span>
-                {abertoEm
-                  ? `{clienteNome} abriu o formulário em ${new Date(abertoEm).toLocaleString("pt-BR")}, mas ainda não confirmou o preenchimento.`
-                  : `{clienteNome} ainda não abriu o formulário.`}{" "}
-                A confirmação é liberada para o cliente alguns minutos depois que ele abre o formulário na Central.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleMarcar(true)}
-              disabled={marcando}
-              className="metal-button w-full h-11 rounded-lg text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
-            >
-              {marcando ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-              <span>{marcando ? "Salvando..." : "Marcar como preenchido"}</span>
-            </button>
-            <p className="text-[11px] text-muted-foreground text-center">
-              Use depois de conferir as respostas no Google Forms, caso o cliente não tenha confirmado pela Central.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Link do Google Forms */}
-      <div className="space-y-3.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-foreground">Questionário de Onboarding (Google Forms)</h3>
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-primary/10 text-primary border border-primary/25 self-start sm:self-auto">
-            {linkOnboardingForm ? "Link Personalizado" : "Link Padrão WRMax"}
-          </span>
-        </div>
-
-        {/forms\.gle\//.test(formsUrl) && (
-          <p className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2">
-            Link encurtado (forms.gle) pode não abrir dentro da plataforma. Prefira o link completo
-            (docs.google.com/forms/.../viewform) para o formulário abrir no modal da Central.
+          <p className="flex items-center gap-2.5 text-sm text-muted-foreground">
+            <Clock className="size-4 shrink-0" />
+            {abertoEm ? `${clienteNome} abriu o formulário em ${quando(abertoEm)}.` : `${clienteNome} ainda não abriu o formulário.`}
           </p>
         )}
 
+        {confirmado ? (
+          <button
+            type="button"
+            onClick={() => handleMarcar(false)}
+            disabled={marcando}
+            className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+          >
+            {marcando ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
+            Desfazer confirmação
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => handleMarcar(true)}
+            disabled={marcando}
+            title="Use depois de conferir as respostas no Google Forms"
+            className="glass-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+          >
+            {marcando ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+            {marcando ? "Salvando..." : "Marcar como preenchido"}
+          </button>
+        )}
+      </div>
+
+      {/* Link do formulario */}
+      <div className="space-y-3 border-t border-[var(--linha)] pt-5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="rotulo">Link do formulário</span>
+          <span className="text-xs text-muted-foreground">{linkOnboardingForm ? "Link Personalizado" : "Link padrão WRMax"}</span>
+        </div>
+
         {editando ? (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="flex flex-col sm:flex-row gap-2.5">
             <input
               type="url"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="https://docs.google.com/forms/d/e/.../viewform"
-              className="flex-1 h-10 px-3 rounded-lg border border-border bg-background text-xs sm:text-sm text-foreground focus:outline-none focus:border-primary font-mono"
+              aria-label="Link do Google Forms"
+              className="flex-1 min-w-0 h-11 px-3.5 rounded-lg border border-[var(--linha-2)] bg-[var(--campo)] text-sm font-mono text-foreground focus:outline-none focus:border-primary"
             />
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleSalvarUrl}
                 disabled={salvandoUrl}
-                className="glass-button h-10 px-4 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="glass-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                <Save className="size-3.5" />
-                <span>{salvandoUrl ? "Salvando..." : "Salvar"}</span>
+                <Save className="size-4" />
+                {salvandoUrl ? "Salvando..." : "Salvar"}
               </button>
-              <button
-                type="button"
-                onClick={() => setEditando(false)}
-                className="h-10 px-3 rounded-lg border border-border bg-secondary/30 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
+              <button type="button" onClick={() => setEditando(false)} className="h-11 px-3 text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer">
                 Cancelar
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-xl border border-border bg-background/80 text-xs sm:text-sm font-mono">
-            <span className="truncate flex-1 text-foreground/90 font-medium">{formsUrl}</span>
-            <div className="flex items-center gap-2 shrink-0">
-              <a
-                href={formsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer flex items-center gap-1.5 border border-border font-sans text-xs font-semibold"
-              >
-                <ExternalLink className="size-3.5 text-primary" />
-                <span>Abrir</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+            <span className="flex-1 min-w-0 truncate text-sm font-mono text-foreground/90">{formsUrl}</span>
+            <div className="flex items-center gap-5 text-sm font-semibold shrink-0">
+              <a href={formsUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
+                Abrir <ExternalLink className="size-3.5" />
               </a>
-              <button
-                type="button"
-                onClick={handleCopiar}
-                className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground transition-colors cursor-pointer flex items-center gap-1.5 border border-border font-sans text-xs font-semibold"
-              >
+              <button type="button" onClick={handleCopiar} className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 cursor-pointer">
                 {copiado ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
-                <span>{copiado ? "Copiado!" : "Copiar"}</span>
+                {copiado ? "Copiado!" : "Copiar"}
               </button>
               <button
                 type="button"
@@ -216,13 +161,19 @@ export function WorkspaceOnboardingPanel({
                   setUrlInput(linkOnboardingForm || "");
                   setEditando(true);
                 }}
-                className="px-3 py-2 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer flex items-center gap-1.5 font-sans text-xs font-semibold"
+                className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 cursor-pointer"
               >
                 <Edit2 className="size-3.5" />
-                <span>Alterar Link</span>
+                Alterar
               </button>
             </div>
           </div>
+        )}
+
+        {/forms\.gle\//.test(formsUrl) && (
+          <p className="text-xs text-amber-300">
+            Link encurtado (forms.gle) pode não abrir dentro da Central. Prefira o link completo (docs.google.com/forms/.../viewform).
+          </p>
         )}
       </div>
     </section>

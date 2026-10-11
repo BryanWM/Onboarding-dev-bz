@@ -52,7 +52,7 @@ describe("WorkspaceContractPanel", () => {
       />,
     );
 
-    expect(screen.getByText("ANEXADO · AGUARDANDO LIBERAÇÃO")).toBeInTheDocument();
+    expect(screen.getByText("Anexado · aguardando liberação")).toBeInTheDocument();
     expect(screen.getByText("O cliente ainda não vê este contrato na Central.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Liberar para o cliente/ }));
     expect(onLiberarContrato).toHaveBeenCalledWith("ct-1");
@@ -66,7 +66,7 @@ describe("WorkspaceContractPanel", () => {
         onEmitirContrato={vi.fn()}
       />,
     );
-    expect(screen.getByText("LIBERADO AO CLIENTE")).toBeInTheDocument();
+    expect(screen.getByText("Liberado ao cliente")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Liberar para o cliente/ })).toBeNull();
   });
 });
