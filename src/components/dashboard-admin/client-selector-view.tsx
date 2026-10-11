@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Search, Plus, FileText } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Search, Plus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ClienteOnboarding } from "@/lib/mock-data";
 import { ProjectDeleteModal } from "./project-delete-modal";
 import { ClientCreateModal } from "./client-create-modal";
@@ -14,6 +14,8 @@ const FILTROS = [
   { id: "7dias", rotulo: "7 dias" },
   { id: "30dias", rotulo: "30 dias" },
 ] as const;
+
+const GAP_LISTA = 10; // gap-2.5
 
 interface ClientSelectorViewProps {
   clientes: ClienteOnboarding[];
@@ -76,38 +78,6 @@ export function ClientSelectorView({
     return list;
   }, [clientesDoSetor, busca, filtroData]);
 
-  // Mensagens iniciais calculadas a partir dos clientes reais
-  const avisos = useMemo(() => {
-    const lista = clientesDoSetor;
-    const umDia = 24 * 3600 * 1000;
-    if (setor === "producao") {
-      const assinadoEm = (c: ClienteOnboarding) => {
-        const datas = (c.contratos || []).map((ct) => ct.assinado_em).filter(Boolean) as string[];
-        return datas.length ? Math.max(...datas.map((d) => new Date(d).getTime())) : null;
-      };
-      const recentes = lista.filter((c) => {
-        const t = assinadoEm(c);
-        return t !== null && Date.now() - t <= 7 * umDia;
-      }).length;
-      const noComercial = (Array.isArray(clientes) ? clientes : []).filter((c) => c && setorDoCliente(c) === "comercial").length;
-      return [
-        { rotulo: "Em produção", valor: lista.length, texto: "projetos com contrato assinado" },
-        { rotulo: "Chegaram na semana", valor: recentes, texto: "contratos assinados nos últimos 7 dias" },
-        { rotulo: "No comercial", valor: noComercial, texto: "projetos ainda em negociação" },
-      ];
-    }
-    const novosHoje = lista.filter((c) => c.created_at && Date.now() - new Date(c.created_at).getTime() <= umDia).length;
-    const pixPendentes = lista.filter((c) => !c.pix_pago).length;
-    const contratosParaEmitir = lista.filter(
-      (c) => (c.dados_cadastrais_cliente?.length ?? 0) > 0 && !(c.contratos?.length ?? 0)
-    ).length;
-    return [
-      { rotulo: "Novos hoje", valor: novosHoje, texto: "clientes cadastrados nas últimas 24h" },
-      { rotulo: "PIX pendente", valor: pixPendentes, texto: "aguardando confirmação do financeiro" },
-      { rotulo: "Contratos", valor: contratosParaEmitir, texto: "com cadastro recebido, prontos para emitir" },
-    ];
-  }, [clientes, clientesDoSetor, setor]);
-
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
 
@@ -139,67 +109,85 @@ export function ClientSelectorView({
     }
   };
 
+
+  // Paginacao do tamanho da tela: quantos cards cabem na area da lista.
+  const listaRef = useRef<HTMLDivElement>(null);
+  const [porPagina, setPorPagina] = useState(5);
+  const [pagina, setPagina] = useState(0);
+  const temClientes = clientesFiltrados.length > 0;
+
+  useEffect(() => {
+    const el = listaRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const medir = () => {
+      if (!el.clientHeight) return; // sem layout (testes): mantem o padrao
+      const cards = [...el.querySelectorAll<HTMLElement>("[data-card-cliente]")];
+      const alturaCard = Math.max(64, ...cards.map((c) => c.offsetHeight));
+      const n = Math.max(1, Math.floor((el.clientHeight + GAP_LISTA) / (alturaCard + GAP_LISTA)));
+      setPorPagina((atual) => (atual === n ? atual : n));
+    };
+    medir();
+    // observa a area e os cards (altura do card muda com os selos / largura da tela)
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    el.querySelectorAll("[data-card-cliente]").forEach((card) => ro.observe(card));
+    window.addEventListener("resize", medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", medir);
+    };
+  }, [loading, temClientes, porPagina, pagina]);
+
+  useEffect(() => setPagina(0), [busca, filtroData, setor]);
+
+  const totalPaginas = Math.max(1, Math.ceil(clientesFiltrados.length / porPagina));
+  const paginaAtual = Math.min(pagina, totalPaginas - 1);
+  const inicio = paginaAtual * porPagina;
+  const clientesDaPagina = clientesFiltrados.slice(inicio, inicio + porPagina);
+
   return (
-    <div className="space-y-5">
-      {/* Mensagens iniciais + acoes principais */}
-      {/* Mensagens iniciais + acoes principais (dourado: etiqueta, 1 palavra e "Novo Projeto") */}
-      <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-7 pt-4 sm:pt-6 px-1">
-        <div className="space-y-4 min-w-0">
-          <span className="tag-ouro inline-block">{setor === "producao" ? "Produção" : "Comercial"}</span>
-          {setor === "producao" ? (
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-[1.04]">
-              {saudacao}, equipe.
-              <br />
-              Projetos em <span className="metal-text">produção</span>.
-            </h1>
-          ) : (
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-[1.04]">
-              {saudacao}, gestor.
-              <br />
-              Seus clientes em <span className="metal-text">andamento</span>.
-            </h1>
-          )}
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
-            {setor === "producao"
-              ? "Projetos chegam aqui quando o cliente envia o contrato assinado. Abra um projeto para conduzir as boas-vindas, a estratégia e a produção."
-              : "Abra um cliente para acompanhar a implantação ou cadastre um novo projeto para gerar o link de acesso."}
-          </p>
+    // Ocupa a altura disponivel sem rolar: topo fixo e lista paginada no espaco que sobra
+    <div className="flex-1 min-h-0 flex flex-col gap-4">
+      {/* Titulo + acoes principais (dourado: etiqueta, 1 palavra e "Novo Projeto") */}
+      <section className="shrink-0 flex flex-col md:flex-row md:items-end justify-between gap-4 pt-2 px-1">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight">
+            {setor === "producao" ? (
+              <>
+                {saudacao}, equipe. Projetos em <span className="metal-text">produção</span>.
+              </>
+            ) : (
+              <>
+                {saudacao}, gestor. Seus clientes em <span className="metal-text">andamento</span>.
+              </>
+            )}
+          </h1>
         </div>
         {setor === "comercial" && (
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={onOpenModelos}
-            className="glass-button h-12 px-5 rounded-lg text-sm font-semibold flex items-center gap-2.5 cursor-pointer"
-          >
-            <FileText className="size-4" />
-            <span>Modelos de Contrato</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setModalNovoAberto(true)}
-            className="metal-button h-12 px-6 rounded-lg text-sm font-semibold flex items-center gap-2.5 cursor-pointer"
-          >
-            <Plus className="size-4" />
-            <span>Novo Projeto</span>
-          </button>
-        </div>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenModelos}
+              className="glass-button h-10 px-4 rounded-lg text-sm font-semibold flex items-center gap-2 cursor-pointer"
+            >
+              <FileText className="size-4" />
+              <span className="sm:hidden">Modelos</span>
+              <span className="hidden sm:inline">Modelos de Contrato</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModalNovoAberto(true)}
+              className="metal-button h-10 px-5 rounded-lg text-sm font-semibold flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="size-4" />
+              <span>Novo Projeto</span>
+            </button>
+          </div>
         )}
       </section>
 
-      {/* Numeros do dia (valor em dourado suave) */}
-      <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        {avisos.map((a) => (
-          <li key={a.rotulo} className="metal-panel px-5 py-5 flex flex-col gap-1.5">
-            <span className="rotulo">{a.rotulo}</span>
-            <strong className="font-display text-4xl font-bold tracking-tight text-primary">{a.valor}</strong>
-            <span className="text-[13px] text-muted-foreground">{a.texto}</span>
-          </li>
-        ))}
-      </ul>
-
       {/* Busca + filtros rapidos */}
-      <section className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      <section className="shrink-0 flex flex-col md:flex-row items-stretch md:items-center gap-3">
         <label className="relative flex-1 min-w-0">
           <span className="sr-only">Buscar cliente</span>
           <Search className="size-4 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -208,10 +196,11 @@ export function ClientSelectorView({
             placeholder="Buscar por nome, e-mail ou WhatsApp"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="w-full h-12 pl-11 pr-4 rounded-[10px] border border-[var(--linha-2)] bg-[var(--campo)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[rgba(232,199,122,0.55)] transition-colors"
+            className="w-full h-10 pl-11 pr-4 rounded-[10px] border border-[var(--linha-2)] bg-[var(--campo)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[rgba(232,199,122,0.55)] transition-colors"
           />
         </label>
 
+        <div className="flex items-center justify-between gap-2 md:contents">
         <div role="group" aria-label="Filtro rápido por data de criação" className="flex items-center gap-1 p-1 rounded-[10px] bg-[var(--campo)] border border-[var(--linha)] overflow-x-auto">
           {FILTROS.map((f) => (
             <button
@@ -219,7 +208,7 @@ export function ClientSelectorView({
               type="button"
               aria-pressed={filtroData === f.id}
               onClick={() => setFiltroData(f.id)}
-              className={`h-10 px-4 rounded-[7px] text-sm font-semibold cursor-pointer transition-colors shrink-0 ${
+              className={`h-8 px-2.5 sm:px-3.5 rounded-[7px] text-sm font-semibold cursor-pointer transition-colors shrink-0 ${
                 filtroData === f.id ? "chip-ouro" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -227,16 +216,43 @@ export function ClientSelectorView({
             </button>
           ))}
         </div>
-        <span className="text-xs font-mono text-muted-foreground px-2 text-center md:text-left">
-          {clientesFiltrados.length} {clientesFiltrados.length === 1 ? "cliente" : "clientes"}
-        </span>
+        {totalPaginas > 1 ? (
+          <nav aria-label="Paginação da lista de clientes" className="flex items-center justify-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setPagina(paginaAtual - 1)}
+              disabled={paginaAtual === 0}
+              aria-label="Página anterior"
+              className="glass-button size-9 rounded-lg grid place-items-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="text-xs font-mono text-muted-foreground px-1 min-w-[5.5rem] sm:min-w-[7.5rem] text-center" aria-live="polite">
+              {inicio + 1}–{Math.min(inicio + porPagina, clientesFiltrados.length)} de {clientesFiltrados.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPagina(paginaAtual + 1)}
+              disabled={paginaAtual >= totalPaginas - 1}
+              aria-label="Próxima página"
+              className="glass-button size-9 rounded-lg grid place-items-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </nav>
+        ) : (
+          <span className="text-xs font-mono text-muted-foreground px-2 text-center md:text-left">
+            {clientesFiltrados.length} {clientesFiltrados.length === 1 ? "cliente" : "clientes"}
+          </span>
+        )}
+        </div>
       </section>
 
-      <div className="space-y-3">
-        <h2 className="sr-only">{setor === "producao" ? "Projetos em produção" : "Novos Projetos"}</h2>
+      <h2 className="sr-only">{setor === "producao" ? "Projetos em produção" : "Novos Projetos"}</h2>
+      <div ref={listaRef} className="flex-1 min-h-0 overflow-hidden">
         {loading ? (
           <div className="py-12 text-center text-sm font-mono text-muted-foreground">Carregando projetos...</div>
-        ) : clientesFiltrados.length === 0 ? (
+        ) : !temClientes ? (
           <div className="metal-panel p-10 text-center space-y-2">
             <Search className="size-7 text-muted-foreground/70 mx-auto" />
             <p className="font-semibold text-sm text-foreground">
@@ -249,22 +265,23 @@ export function ClientSelectorView({
             </p>
           </div>
         ) : (
-          <div className="grid gap-3">
-            {clientesFiltrados.map((cli) => (
-              <ProjectListCard
-                key={cli.id}
-                cliente={cli}
-                onSelect={onSelectCliente}
-                onEditar={(c) => {
-                  setClienteParaEditar(c);
-                  setModalEditarAberto(true);
-                }}
-                onToggleBloqueio={handleToggleBloqueio}
-                onExcluir={(c) => {
-                  setClienteParaExcluir(c);
-                  setModalExcluirAberto(true);
-                }}
-              />
+          <div className="grid gap-2.5">
+            {clientesDaPagina.map((cli) => (
+              <div key={cli.id} data-card-cliente>
+                <ProjectListCard
+                  cliente={cli}
+                  onSelect={onSelectCliente}
+                  onEditar={(c) => {
+                    setClienteParaEditar(c);
+                    setModalEditarAberto(true);
+                  }}
+                  onToggleBloqueio={handleToggleBloqueio}
+                  onExcluir={(c) => {
+                    setClienteParaExcluir(c);
+                    setModalExcluirAberto(true);
+                  }}
+                />
+              </div>
             ))}
           </div>
         )}

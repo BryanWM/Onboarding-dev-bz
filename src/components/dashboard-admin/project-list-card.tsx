@@ -59,29 +59,25 @@ export function ProjectListCard({
   const dataProg = formatarData(cliente.data_programacao);
 
   return (
-    <article className="metal-panel p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center gap-4 hover:border-primary/40 transition-colors">
-      <div className="flex items-center gap-4 flex-1 min-w-0">
+    // Compacto (2 linhas) para caber mais clientes por pagina na tela inicial
+    <article className="metal-panel !rounded-[14px] px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-3 hover:border-primary/40 transition-colors">
+      <div className="flex items-center gap-3.5 flex-1 min-w-0">
         <div
           aria-hidden="true"
-          className="size-12 shrink-0 rounded-xl grid place-items-center chip-ouro font-display font-bold text-[15px]"
+          className="size-10 shrink-0 rounded-lg grid place-items-center chip-ouro font-display font-bold text-sm"
         >
           {iniciais(cliente.nome_completo || "?")}
         </div>
-        <div className="min-w-0 space-y-1.5">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h3 className="font-bold text-base sm:text-lg text-foreground truncate">{cliente.nome_completo}</h3>
-            {dataCriacao && <span className="text-[11px] font-mono text-muted-foreground/80">Criado em {dataCriacao}</span>}
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 min-w-0">
+            <h3 className="font-bold text-base text-foreground truncate max-w-full">{cliente.nome_completo}</h3>
+            <span className="hidden sm:flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground min-w-0">
+              {cliente.email && <span className="truncate">{cliente.email}</span>}
+              {cliente.whatsapp && <span className="font-mono">WhatsApp {cliente.whatsapp}</span>}
+              {dataCriacao && <span className="font-mono text-muted-foreground/80">Criado em {dataCriacao}</span>}
+            </span>
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-            {cliente.email && <span>{cliente.email}</span>}
-            {cliente.whatsapp && <span className="font-mono">WhatsApp {cliente.whatsapp}</span>}
-            {dataProg && (
-              <span className="text-primary font-semibold flex items-center gap-1">
-                <Calendar className="size-3" /> Onboarding: {dataProg}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap items-center gap-1.5">
             {isBloqueado ? (
               <Selo tom="vermelho">Acesso bloqueado</Selo>
             ) : isExpirado ? (
@@ -102,17 +98,21 @@ export function ProjectListCard({
             ) : (
               <Selo tom="neutro">Aguardando contrato</Selo>
             )}
+            {dataProg && (
+              <span className="text-xs text-primary font-semibold flex items-center gap-1 ml-1">
+                <Calendar className="size-3" /> Onboarding: {dataProg}
+              </span>
+            )}
           </div>
         </div>
       </div>
-
       <div className="flex items-center gap-2 justify-end shrink-0">
         <button
           type="button"
           aria-label="Editar projeto"
           title="Editar projeto"
           onClick={() => onEditar(cliente)}
-          className="glass-button size-10 rounded-lg grid place-items-center text-muted-foreground hover:text-foreground cursor-pointer"
+          className="glass-button size-9 rounded-lg grid place-items-center text-muted-foreground hover:text-foreground cursor-pointer"
         >
           <Edit3 className="size-4" />
         </button>
@@ -132,16 +132,17 @@ export function ProjectListCard({
           aria-label="Excluir projeto"
           title="Excluir projeto definitivamente"
           onClick={() => onExcluir(cliente)}
-          className="glass-button size-10 rounded-lg grid place-items-center text-muted-foreground hover:!text-red-300 hover:!border-red-400/40 cursor-pointer"
+          className="glass-button size-9 rounded-lg grid place-items-center text-muted-foreground hover:!text-red-300 hover:!border-red-400/40 cursor-pointer"
         >
           <Trash2 className="size-4" />
         </button>
         <button
           type="button"
           onClick={() => onSelect(cliente)}
-          className="glass-button h-10 px-4 sm:px-5 rounded-lg text-[13px] font-semibold flex items-center gap-2 cursor-pointer"
+          className="glass-button h-9 px-4 rounded-lg text-[13px] font-semibold flex items-center gap-2 cursor-pointer"
         >
-          <span>Gerenciar Cliente</span>
+          <span className="sm:hidden">Abrir</span>
+          <span className="hidden sm:inline">Gerenciar Cliente</span>
           <ArrowRight className="size-4" />
         </button>
       </div>
