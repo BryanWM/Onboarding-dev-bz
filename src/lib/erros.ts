@@ -7,6 +7,11 @@ const MENSAGENS_ERRO: Record<string, string> = {
   CADASTRO_INCOMPLETO: "Preencha o nome completo, o CPF e o e-mail.",
   CPF_INVALIDO: "CPF inválido. Confira os números e tente de novo.",
   CNPJ_INVALIDO: "CNPJ inválido. Confira os números ou deixe o campo em branco.",
+  CONTRATO_JA_VALIDADO: "Este contrato já foi validado pelo gestor. Fale com a WRMax se precisar trocar a via.",
+  VIA_ASSINADA_AUSENTE: "O cliente ainda não enviou a via assinada.",
+  // coluna obrigatoria no banco antigo (ex.: CNPJ sem a migration 20261009)
+  "violates not-null constraint":
+    "O servidor ainda não recebeu a atualização do cadastro (migration pendente). Avise o gestor WRMax.",
   CONTRATO_NAO_ENCONTRADO: "Contrato não encontrado. Atualize a página e tente de novo.",
   CLIENTE_NAO_ENCONTRADO: "Cliente não encontrado. Atualize a página e tente de novo.",
   ARQUIVO_MUITO_GRANDE: "O arquivo excede o tamanho máximo permitido.",

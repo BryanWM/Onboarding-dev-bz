@@ -9,73 +9,83 @@ function preencher(rotulo: RegExp, valor: string) {
   fireEvent.change(screen.getByLabelText(rotulo), { target: { value: valor } });
 }
 
-describe("SlotDadosCadastrais Component", () => {
-  it("formulario unico: CPF obrigatorio, empresa e CNPJ opcionais, sem abas PF/PJ", () => {
-    render(<SlotDadosCadastrais token="token-teste" cadastroPreenchidoInicial={false} />);
-    expect(screen.getByRole("heading", { name: "Dados Cadastrais" })).toBeInTheDocument();
+function preencherPessoa() {
+  preencher(/^Nome (completo|do responsável)/, "Maria Silva");
+  preencher(/^CPF/, "52998224725");
+  preencher(/^E-mail/, "maria@teste.com");
+}
+
+describe("SlotDadosCadastrais", () => {
+  it("comeca como pessoa fisica: CPF obrigatorio e sem campos de empresa", () => {
+    render(<SlotDadosCadastrais token="token-teste" />);
+    expect(screen.getByRole("radio", { name: /Pessoa física/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByLabelText("CPF *")).toBeInTheDocument();
-    // empresa fica escondida ate o cliente pedir
-    expect(screen.queryByLabelText("CNPJ (opcional)")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Contratar por uma empresa/ }));
-    expect(screen.getByLabelText("CNPJ (opcional)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Razão social (opcional)")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Empresa \(PJ\)/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Pessoa Física/ })).toBeNull();
-    expect(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText("CNPJ *")).toBeNull();
+    expect(screen.queryByLabelText("Nome da empresa *")).toBeNull();
   });
 
-  it("aplica mascara e recusa CPF invalido", async () => {
+  it("pessoa fisica envia so com CPF (sem empresa nem CNPJ)", async () => {
     const spy = vi.spyOn(supabaseLib, "submeterCadastroCliente").mockResolvedValue({ sucesso: true } as any);
     render(<SlotDadosCadastrais token="tok" />);
-    preencher(/Nome completo/, "Maria Silva");
-    preencher(/^CPF/, "11111111111");
-    preencher(/E-mail/, "maria@teste.com");
-    expect(screen.getByLabelText("CPF *")).toHaveValue("111.111.111-11");
-
-    fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("CPF inválido");
-    expect(spy).not.toHaveBeenCalled();
-  });
-
-  it("envia so com CPF (sem empresa): contratante e a propria pessoa", async () => {
-    const spy = vi.spyOn(supabaseLib, "submeterCadastroCliente").mockResolvedValue({ sucesso: true } as any);
-    render(<SlotDadosCadastrais token="tok" />);
-    preencher(/Nome completo/, "Maria Silva");
-    preencher(/^CPF/, "52998224725");
-    preencher(/E-mail/, "maria@teste.com");
+    preencherPessoa();
+    expect(screen.getByLabelText("CPF *")).toHaveValue("529.982.247-25");
 
     fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
     await waitFor(() => expect(screen.getByText("Dados cadastrais enviados com sucesso!")).toBeInTheDocument());
     expect(spy).toHaveBeenCalledWith(
       "tok",
-      expect.objectContaining({
-        representante_nome: "Maria Silva",
-        representante_cpf: "529.982.247-25",
-        razao_social: "Maria Silva",
-        cnpj: null,
-      }),
+      expect.objectContaining({ representante_cpf: "529.982.247-25", razao_social: "Maria Silva", cnpj: null }),
     );
+    expect(screen.getByText("Pessoa física")).toBeInTheDocument();
   });
 
-  it("CNPJ informado precisa ser valido", async () => {
+  it("recusa CPF invalido", async () => {
     const spy = vi.spyOn(supabaseLib, "submeterCadastroCliente").mockResolvedValue({ sucesso: true } as any);
     render(<SlotDadosCadastrais token="tok" />);
-    preencher(/Nome completo/, "Maria Silva");
-    preencher(/^CPF/, "52998224725");
-    preencher(/E-mail/, "maria@teste.com");
-    fireEvent.click(screen.getByRole("button", { name: /Contratar por uma empresa/ }));
-    preencher(/^CNPJ/, "12345678000100");
-
+    preencher(/^Nome completo/, "Maria Silva");
+    preencher(/^CPF/, "11111111111");
+    preencher(/^E-mail/, "maria@teste.com");
     fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("CNPJ inválido");
+    expect(await screen.findByRole("alert")).toHaveTextContent("CPF inválido");
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("should render confirmed summary when initially completed", () => {
+  it("pessoa juridica mostra nome da empresa e CNPJ, ambos obrigatorios, alem do CPF", async () => {
+    const spy = vi.spyOn(supabaseLib, "submeterCadastroCliente").mockResolvedValue({ sucesso: true } as any);
+    render(<SlotDadosCadastrais token="tok" />);
+    fireEvent.click(screen.getByRole("radio", { name: /Pessoa jurídica/ }));
+    expect(screen.getByLabelText("Nome da empresa *")).toBeInTheDocument();
+    expect(screen.getByLabelText("CNPJ *")).toBeInTheDocument();
+    expect(screen.getByLabelText("CPF *")).toBeInTheDocument();
+
+    preencherPessoa();
+    fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("nome da empresa e o CNPJ");
+
+    preencher(/^Nome da empresa/, "Empresa Teste Ltda");
+    preencher(/^CNPJ/, "11222333000181");
+    fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
+    await waitFor(() => expect(screen.getByText("Dados cadastrais enviados com sucesso!")).toBeInTheDocument());
+    expect(spy).toHaveBeenCalledWith(
+      "tok",
+      expect.objectContaining({
+        razao_social: "Empresa Teste Ltda",
+        cnpj: "11.222.333/0001-81",
+        representante_nome: "Maria Silva",
+        representante_cpf: "529.982.247-25",
+      }),
+    );
+    // resumo mostra os dados da empresa
+    expect(screen.getByText("Pessoa jurídica")).toBeInTheDocument();
+    expect(screen.getByText("Empresa Teste Ltda")).toBeInTheDocument();
+    expect(screen.getByText("11.222.333/0001-81")).toBeInTheDocument();
+  });
+
+  it("resumo de cadastro ja enviado (empresa) mostra empresa, CNPJ e CPF", () => {
     render(
       <SlotDadosCadastrais
         token="token-teste"
-        cadastroPreenchidoInicial={true}
+        cadastroPreenchidoInicial
         dadosIniciais={{
           razao_social: "Empresa XPTO Ltda",
           cnpj: "12.345.678/0001-99",
@@ -83,11 +93,11 @@ describe("SlotDadosCadastrais Component", () => {
           representante_cpf: "529.982.247-25",
           email_financeiro: "financeiro@xpto.com",
         }}
-      />
+      />,
     );
-    expect(screen.getByText("Dados cadastrais enviados com sucesso!")).toBeInTheDocument();
-    expect(screen.getByText("Maria Silva")).toBeInTheDocument();
+    expect(screen.getByText("Pessoa jurídica")).toBeInTheDocument();
+    expect(screen.getByText("Empresa XPTO Ltda")).toBeInTheDocument();
+    expect(screen.getByText("12.345.678/0001-99")).toBeInTheDocument();
     expect(screen.getByText("529.982.247-25")).toBeInTheDocument();
-    expect(screen.getByText("Empresa XPTO Ltda · 12.345.678/0001-99")).toBeInTheDocument();
   });
 });

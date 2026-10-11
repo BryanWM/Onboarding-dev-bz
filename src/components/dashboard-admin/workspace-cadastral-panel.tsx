@@ -86,7 +86,8 @@ export function WorkspaceCadastralPanel({
   const empresa = dados?.razao_social && dados.razao_social !== nome ? dados.razao_social : null;
   const campos = temDados
     ? [
-        { rotulo: "Nome completo", valor: nome },
+        { rotulo: "Tipo", valor: dados.cnpj ? "Pessoa jurídica" : "Pessoa física" },
+        { rotulo: dados.cnpj ? "Responsável" : "Nome completo", valor: nome },
         { rotulo: "CPF", valor: dados.representante_cpf, mono: true },
         { rotulo: "Razão social", valor: empresa },
         { rotulo: "CNPJ", valor: dados.cnpj, mono: true },
