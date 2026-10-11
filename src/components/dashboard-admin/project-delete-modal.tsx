@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { AlertTriangle, Trash2, X, Loader2 } from "lucide-react";
+import { Portal } from "@/components/portal";
+import { useTravarRolagem } from "@/lib/use-travar-rolagem";
 
 interface ProjectDeleteModalProps {
   open: boolean;
@@ -16,6 +18,7 @@ export function ProjectDeleteModal({
   onClose,
   loading = false,
 }: ProjectDeleteModalProps) {
+  useTravarRolagem(open);
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -28,6 +31,7 @@ export function ProjectDeleteModal({
   if (!open) return null;
 
   return (
+    <Portal>
     <div
       role="dialog"
       aria-modal="true"
@@ -96,5 +100,6 @@ export function ProjectDeleteModal({
         </div>
       </div>
     </div>
+    </Portal>
   );
 }

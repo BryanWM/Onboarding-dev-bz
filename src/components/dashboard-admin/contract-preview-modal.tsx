@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { ScrollText, X, Download, ShieldCheck, Calendar, DollarSign } from "lucide-react";
+import { useTravarRolagem } from "@/lib/use-travar-rolagem";
+import { Portal } from "@/components/portal";
 import { formatCurrency } from "@/lib/utils";
 
 interface ContractPreviewModalProps {
@@ -21,6 +23,7 @@ export function ContractPreviewModal({
   dadosCadastrais,
   onClose,
 }: ContractPreviewModalProps) {
+  useTravarRolagem(open);
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,6 +41,7 @@ export function ContractPreviewModal({
   const endereco = dadosCadastrais?.logradouro || "Teresina - PI";
 
   return (
+    <Portal>
     <div
       role="dialog"
       aria-modal="true"
@@ -148,5 +152,6 @@ export function ContractPreviewModal({
         </div>
       </div>
     </div>
+    </Portal>
   );
 }

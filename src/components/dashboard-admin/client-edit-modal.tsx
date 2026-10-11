@@ -1,7 +1,9 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { Edit3, Lock, Calendar, Save, X, Loader2, FolderOpen, FileUp } from "lucide-react";
+import { Edit3, Save, X, Loader2, FileUp } from "lucide-react";
 import type { ClienteOnboarding } from "@/lib/mock-data";
 import { atualizarProjeto, atualizarApresentacaoCliente } from "@/lib/supabase";
+import { Portal } from "@/components/portal";
+import { useTravarRolagem } from "@/lib/use-travar-rolagem";
 
 interface ClientEditModalProps {
   open: boolean;
@@ -23,6 +25,7 @@ export function ClientEditModal({
   const [linkOnboardingForm, setLinkOnboardingForm] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  useTravarRolagem(open && Boolean(cliente));
 
   useEffect(() => {
     if (cliente) {
@@ -77,17 +80,24 @@ export function ClientEditModal({
     }
   };
 
+
+  const campo =
+    "w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary/80 transition-colors";
+  const rotulo = "block text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-1";
+
   return (
+    <Portal>
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-project-title"
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="metal-panel max-w-lg w-full p-6 space-y-5 animate-in zoom-in-95 duration-150 border-primary/30 shadow-2xl relative">
+      {/* Layout compacto em duas colunas: cabe na tela sem rolagem */}
+      <div className="metal-panel max-w-2xl w-full p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150 border-primary/30 shadow-2xl relative">
         <div className="flex items-center justify-between border-b border-border/60 pb-3">
           <h3 id="edit-project-title" className="font-bold text-base text-foreground flex items-center gap-2">
             <Edit3 className="size-4 text-primary" />
@@ -104,132 +114,122 @@ export function ClientEditModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Data de Criacao: Bloqueada, nao editavel */}
-          <div className="p-3 rounded-lg border border-border/70 bg-secondary/30 space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-mono uppercase text-muted-foreground flex items-center gap-1">
-                <Lock className="size-3 text-amber-400" />
-                Data de Criação (Fixa e Não Editável)
-              </span>
-              <span className="font-mono text-foreground">{dataCriacaoFormatada}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-3">
+            <div className="sm:col-span-2">
+              <label htmlFor="editar-nome" className={rotulo}>
+                Nome do Projeto ou da Pessoa *
+              </label>
+              <input
+                id="editar-nome"
+                type="text"
+                required
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Ex: WRMax Lançamento ou Dr. Lucas Clímaco"
+                className={campo}
+              />
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              A data de criação é um registro cronológico do sistema e não pode ser modificada.
-            </p>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              Nome do Projeto ou da Pessoa *
-            </label>
-            <input
-              type="text"
-              required
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex: WRMax Lançamento ou Dr. Lucas Clímaco"
-              className="w-full h-11 px-3.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary/80 transition-colors"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="size-3.5 text-primary" />
-              Programação do Onboarding / Apresentação
-            </label>
-            <input
-              type="datetime-local"
-              value={dataProgramacao}
-              onChange={(e) => setDataProgramacao(e.target.value)}
-              className="w-full h-11 px-3.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary/80 font-mono transition-colors"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+            <div>
+              <label htmlFor="editar-email" className={rotulo}>
                 E-mail de Contato
               </label>
               <input
+                id="editar-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="cliente@empresa.com"
-                className="w-full h-11 px-3.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary/80 transition-colors"
+                className={campo}
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+            <div>
+              <label htmlFor="editar-whatsapp" className={rotulo}>
                 WhatsApp
               </label>
               <input
+                id="editar-whatsapp"
                 type="text"
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 placeholder="(86) 99999-9999"
-                className="w-full h-11 px-3.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary/80 font-mono transition-colors"
+                className={`${campo} font-mono`}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="editar-programacao" className={rotulo}>
+                Programação do Onboarding
+              </label>
+              <input
+                id="editar-programacao"
+                type="datetime-local"
+                value={dataProgramacao}
+                onChange={(e) => setDataProgramacao(e.target.value)}
+                className={`${campo} font-mono`}
+              />
+            </div>
+            <div>
+              <span className={rotulo}>Apresentação em PDF</span>
+              <label className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border bg-background hover:border-primary/50 text-xs text-muted-foreground cursor-pointer transition-colors">
+                <FileUp className="size-4 text-primary shrink-0" />
+                <span className="truncate">
+                  {pdfFile ? pdfFile.name : cliente.apresentacao_pdf_nome || "Selecionar novo PDF..."}
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={(e) => e.target.files && setPdfFile(e.target.files[0] ?? null)}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label htmlFor="editar-forms" className={rotulo}>
+                Link de Onboarding (Google Forms)
+              </label>
+              <input
+                id="editar-forms"
+                type="url"
+                value={linkOnboardingForm}
+                onChange={(e) => setLinkOnboardingForm(e.target.value)}
+                placeholder="Em branco = formulário padrão da WRMax"
+                className={campo}
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <FolderOpen className="size-3.5 text-primary" />
-              Link de Onboarding do Cliente (Google Forms)
-            </label>
-            <input
-              type="url"
-              value={linkOnboardingForm}
-              onChange={(e) => setLinkOnboardingForm(e.target.value)}
-              placeholder="https://docs.google.com/forms/d/e/.../viewform"
-              className="w-full h-11 px-3.5 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary/80 transition-colors"
-            />
-            <span className="text-[10px] text-muted-foreground block">
-              Deixe em branco para usar o formulário de onboarding padrão da WRMax.
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 pt-3 border-t border-border/60">
+            {/* Data de criacao: fixa, so informativa */}
+            <span
+              className="text-[11px] font-mono text-muted-foreground sm:mr-auto"
+              title="Registro do sistema, não pode ser alterado"
+            >
+              Criado em {dataCriacaoFormatada}
             </span>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <FileUp className="size-3.5 text-primary" />
-              Apresentação Comercial em PDF
-            </label>
-            <label className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-border bg-background hover:border-primary/50 text-xs text-muted-foreground cursor-pointer transition-colors">
-              <FileUp className="size-4 text-primary shrink-0" />
-              <span className="truncate">
-                {pdfFile
-                  ? pdfFile.name
-                  : (cliente.apresentacao_pdf_nome || "Selecionar novo PDF de apresentação...")}
-              </span>
-              <input
-                type="file"
-                accept=".pdf,application/pdf"
-                onChange={(e) => e.target.files && setPdfFile(e.target.files[0])}
-                className="hidden"
-              />
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-3 border-t border-border/60">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="px-4 py-2.5 rounded-lg border border-border bg-secondary/30 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !nome}
-              className="metal-button px-5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-              <span>{saving ? "Salvando..." : "Salvar Alterações"}</span>
-            </button>
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+                className="px-4 py-2 rounded-lg border border-border bg-secondary/30 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !nome}
+                className="metal-button h-10 px-5 rounded-lg text-xs sm:text-sm font-semibold text-primary-foreground flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                <span>{saving ? "Salvando..." : "Salvar Alterações"}</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
     </div>
+    </Portal>
   );
 }

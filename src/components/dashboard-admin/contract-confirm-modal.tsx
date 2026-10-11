@@ -1,4 +1,6 @@
 import { AlertTriangle, X } from "lucide-react";
+import { useTravarRolagem } from "@/lib/use-travar-rolagem";
+import { Portal } from "@/components/portal";
 import { formatCurrency } from "@/lib/utils";
 
 interface ContractConfirmModalProps {
@@ -18,9 +20,11 @@ export function ContractConfirmModal({
   onConfirm,
   onClose,
 }: ContractConfirmModalProps) {
+  useTravarRolagem(open);
   if (!open) return null;
 
   return (
+    <Portal>
     <div
       role="dialog"
       aria-modal="true"
@@ -77,5 +81,6 @@ export function ContractConfirmModal({
         </div>
       </div>
     </div>
+    </Portal>
   );
 }

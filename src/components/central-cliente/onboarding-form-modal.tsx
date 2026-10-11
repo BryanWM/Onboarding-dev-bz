@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { ArrowUpRight, Save, X } from "lucide-react";
+import { Portal } from "@/components/portal";
+import { useTravarRolagem } from "@/lib/use-travar-rolagem";
 
 // Google Forms aceita ser embutido com ?embedded=true
 export function urlFormularioEmbutido(url: string) {
@@ -20,22 +22,24 @@ interface OnboardingFormModalProps {
 }
 
 export function OnboardingFormModal({ open, formUrl, onClose }: OnboardingFormModalProps) {
+  useTravarRolagem(open);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--overlay)] backdrop-blur-sm flex items-stretch sm:items-center justify-center sm:p-6">
+    <Portal>
+    <div
+      className="fixed inset-0 z-[60] bg-[rgba(4,3,2,0.72)] backdrop-blur-md flex items-stretch sm:items-center justify-center sm:p-6 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -86,5 +90,6 @@ export function OnboardingFormModal({ open, formUrl, onClose }: OnboardingFormMo
         </footer>
       </div>
     </div>
+    </Portal>
   );
 }
