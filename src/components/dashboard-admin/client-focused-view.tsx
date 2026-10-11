@@ -11,6 +11,7 @@ import {
   FolderOpen,
   ArrowRight,
   PartyPopper,
+  Check,
 } from "lucide-react";
 import type { ClienteOnboarding } from "@/lib/mock-data";
 import { WorkspaceHeader } from "./workspace-header";
@@ -39,6 +40,7 @@ import {
   removerViaAssinada,
 } from "@/lib/supabase";
 import { contratoFechado, type Setor } from "@/lib/fase-projeto";
+import { ETAPAS_PRODUCAO, progressoProducao, useChecklistProducao } from "./producao";
 
 export type ClientTabId =
   | "1_inicio"
@@ -67,8 +69,8 @@ const CLIENT_TABS: { id: ClientTabId; label: string; icon: React.ReactNode; seto
   { id: "3b_onboard", label: "3. Onboard", icon: <FolderOpen className="size-4" />, setor: "comercial" },
   { id: "4_cadastro", label: "4. Dados Cadastrais", icon: <UserCheck className="size-4" />, setor: "comercial" },
   { id: "5_contrato", label: "5. Contrato", icon: <ScrollText className="size-4" />, setor: "comercial" },
-  { id: "6_boas_vindas", label: "6. Boas-Vindas", icon: <Sparkles className="size-4" />, setor: "producao" },
-  { id: "7_3_dias_uteis", label: "7. 3 Dias Úteis", icon: <Calendar className="size-4" />, setor: "producao" },
+  { id: "6_boas_vindas", label: "6. Boas-vindas", icon: <Sparkles className="size-4" />, setor: "producao" },
+  { id: "7_3_dias_uteis", label: "7. 3 dias úteis", icon: <Calendar className="size-4" />, setor: "producao" },
   { id: "8_estrategia", label: "8. Estratégia", icon: <Layers className="size-4" />, setor: "producao" },
   { id: "9_producao", label: "9. Produção", icon: <Layers className="size-4" />, setor: "producao" },
 ];
@@ -82,12 +84,30 @@ export function ClientFocusedView({
 }: ClientFocusedViewProps) {
   // Comercial ve as etapas 0-5; Producao, de Boas-vindas em diante.
   const abas = CLIENT_TABS.filter((t) => t.setor === setor);
-  const [activeTab, setActiveTab] = useState<ClientTabId>(abas[0]!.id);
+  const producao = setor === "producao";
+  // Checklist da Producao vem do banco (atualiza a cada 15s e ao marcar um item)
+  const checklist = useChecklistProducao(producao ? [cliente.id] : []);
+  const progresso = producao && checklist.carregado ? progressoProducao(cliente.id) : null;
+
+  // Producao abre na etapa em que o cliente esta (primeira com entrega pendente)
+  const abaInicial = (): ClientTabId =>
+    producao ? (progressoProducao(cliente.id).atual?.etapa.id ?? "9_producao") : abas[0]!.id;
+  const [activeTab, setActiveTabState] = useState<ClientTabId>(abaInicial);
+  const [abaEscolhida, setAbaEscolhida] = useState(false);
+  const setActiveTab = (aba: ClientTabId) => {
+    setAbaEscolhida(true);
+    setActiveTabState(aba);
+  };
   const [modelos, setModelos] = useState<ModeloContrato[]>([]);
   const fechado = contratoFechado(cliente);
 
+  // Ao terminar a primeira carga do checklist, vai para a etapa atual (se o gestor nao trocou de aba)
   useEffect(() => {
-    if (!abas.some((t) => t.id === activeTab)) setActiveTab(abas[0]!.id);
+    if (producao && checklist.carregado && !abaEscolhida) setActiveTabState(abaInicial());
+  }, [checklist.carregado]);
+
+  useEffect(() => {
+    if (!abas.some((t) => t.id === activeTab)) setActiveTabState(abaInicial());
   }, [setor]);
   const [loadingAction, setLoadingAction] = useState(false);
   const [temComprovante, setTemComprovante] = useState(false);
@@ -219,6 +239,7 @@ export function ClientFocusedView({
         {abas.map((tab) => {
           const [numero, nome] = tab.label.split(". ");
           const ativa = activeTab === tab.id;
+          const prog = progresso?.etapas.find((e) => e.etapa.id === tab.id);
           return (
             <button
               key={tab.id}
@@ -233,6 +254,14 @@ export function ClientFocusedView({
             >
               <span className={`font-mono text-xs ${ativa ? "text-[var(--ouro)]" : "text-[#8c836f]"}`}>{numero}</span>
               <span>{nome}</span>
+              {prog &&
+                (prog.completa ? (
+                  <Check aria-label="concluída" className="size-3.5 text-[#6fd39b]" strokeWidth={3} />
+                ) : (
+                  <span className="text-[11px] font-mono font-normal text-muted-foreground tabular-nums">
+                    {prog.feitos}/{prog.total}
+                  </span>
+                ))}
             </button>
           );
         })}
@@ -352,20 +381,22 @@ export function ClientFocusedView({
           />
         )}
 
-        {activeTab === "6_boas_vindas" && (
-          <WorkspaceStageTab stageIndex={3} clienteId={cliente.id} clienteNome={cliente.nome_completo} />
+        {producao && checklist.erro && (
+          <div role="alert" className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+            {checklist.erro}
+          </div>
         )}
 
-        {activeTab === "7_3_dias_uteis" && (
-          <WorkspaceStageTab stageIndex={4} clienteId={cliente.id} clienteNome={cliente.nome_completo} />
+        {producao && !checklist.carregado && (
+          <div className="py-12 text-center text-sm font-mono text-muted-foreground">Carregando checklist...</div>
         )}
 
-        {activeTab === "8_estrategia" && (
-          <WorkspaceStageTab stageIndex={5} clienteId={cliente.id} clienteNome={cliente.nome_completo} />
-        )}
-
-        {activeTab === "9_producao" && (
-          <WorkspaceStageTab stageIndex={6} clienteId={cliente.id} clienteNome={cliente.nome_completo} />
+        {ETAPAS_PRODUCAO.map(
+          (etapa) =>
+            checklist.carregado &&
+            activeTab === etapa.id && (
+              <WorkspaceStageTab key={etapa.id} etapaId={etapa.id} clienteId={cliente.id} onIrPara={setActiveTab} />
+            )
         )}
       </div>
     </div>

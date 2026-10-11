@@ -103,6 +103,30 @@ export const MOCK_CLIENTES: ClienteOnboarding[] = [
       },
     ],
   },
+  {
+    // Contrato fechado: aparece no quadro da Producao
+    id: "mock-3",
+    nome_completo: "Padaria Pão Dourado",
+    email: "contato@paodourado.com.br",
+    whatsapp: "86999993333",
+    status: "concluido",
+    pix_pago: true,
+    onboarding_confirmado_em: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
+    created_at: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+    links_temporarios: [
+      { id: "link-3", token: "tok_pao_dourado_789", expira_em: new Date(Date.now() - 3600 * 1000).toISOString() },
+    ],
+    contratos: [
+      {
+        id: "contrato-mock-3",
+        valor_mensal: 2800,
+        dia_vencimento: 15,
+        status_envio: "assinado",
+        assinado_em: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+        validado_em: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+      },
+    ],
+  },
 ];
 
 export const MOCK_MODELOS = [

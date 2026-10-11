@@ -23,7 +23,7 @@ const STATUS: Record<string, { texto: string; tom: TomStatus }> = {
   contrato_gerado: { texto: "Contrato gerado", tom: "ambar" },
   contrato_enviado: { texto: "Contrato enviado", tom: "ambar" },
   assinado: { texto: "Contrato assinado", tom: "verde" },
-  concluido: { texto: "Concluído", tom: "verde" },
+  concluido: { texto: "Contrato fechado", tom: "verde" },
   expirado: { texto: "Link expirado", tom: "ambar" },
   bloqueado: { texto: "Acesso bloqueado", tom: "vermelho" },
 };

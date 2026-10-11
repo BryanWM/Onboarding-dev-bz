@@ -5,6 +5,7 @@ import { ProjectDeleteModal } from "./project-delete-modal";
 import { ClientCreateModal } from "./client-create-modal";
 import { ClientEditModal } from "./client-edit-modal";
 import { ProjectListCard } from "./project-list-card";
+import { ProducaoKanban } from "./producao-kanban";
 import { excluirProjeto, bloquearLink, desbloquearLink } from "@/lib/supabase";
 import { clienteNoSetor, contratoFechado, type Setor } from "@/lib/fase-projeto";
 
@@ -34,6 +35,7 @@ export function ClientSelectorView({
   onSelectCliente,
   onOpenModelos,
 }: ClientSelectorViewProps) {
+  const producao = setor === "producao";
   const [busca, setBusca] = useState("");
   type FiltroData = "todas" | "hoje" | "7dias" | "30dias";
   const [filtroData, setFiltroData] = useState<FiltroData>("todas");
@@ -200,6 +202,11 @@ export function ClientSelectorView({
           />
         </label>
 
+        {producao ? (
+          <span className="text-xs font-mono text-muted-foreground px-2 text-center md:text-left shrink-0">
+            {clientesFiltrados.length} {clientesFiltrados.length === 1 ? "projeto" : "projetos"}
+          </span>
+        ) : (
         <div className="flex items-center justify-between gap-2 md:contents">
         <div role="group" aria-label="Filtro rápido por data de criação" className="flex items-center gap-1 p-1 rounded-[10px] bg-[var(--campo)] border border-[var(--linha)] overflow-x-auto">
           {FILTROS.map((f) => (
@@ -246,6 +253,7 @@ export function ClientSelectorView({
           </span>
         )}
         </div>
+        )}
       </section>
 
       <h2 className="sr-only">{setor === "producao" ? "Projetos em produção" : "Novos Projetos"}</h2>
@@ -264,6 +272,8 @@ export function ClientSelectorView({
                 : "Ajuste a busca ou o filtro de período."}
             </p>
           </div>
+        ) : producao ? (
+          <ProducaoKanban clientes={clientesFiltrados} onSelect={onSelectCliente} />
         ) : (
           <div className="grid gap-2.5">
             {clientesDaPagina.map((cli) => (
