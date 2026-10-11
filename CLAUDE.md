@@ -42,11 +42,13 @@ Layout em **acordeão** (`calcularEtapas` em `cliente-token-screen.tsx`): só um
 Um único acesso com duas seções no topo (`Setor`, `src/lib/fase-projeto.ts`, lembrada em `localStorage` `wrmax_setor`): **Comercial** (padrão; abas 0. Início → 5. Contrato, cria projetos) e **Produção** (abas 6. Boas-vindas → 9. Produção). O cliente envia a via assinada (fica "aguardando validação", `status = 'assinado'`); na aba 5 o gestor **valida** (RPC `validar_contrato_assinado` → `contratos.validado_em`, `status = 'concluido'`) ou **apaga a via** para o cliente reenviar (`remover_via_assinada` + remoção do arquivo no storage). Contrato validado = **fechado**: aparece na Produção e continua no Comercial (lista mostra só o selo "Contrato fechado" e a ação "Excluir contrato", que pede digitar EXCLUIR). Regras em `src/lib/fase-projeto.ts` (`contratoFechado`, `clienteNoSetor`).
 
 Fluxo em uso: `ClientSelectorView` (filtra pelo setor) → `ClientFocusedView` (mostra só as abas do setor; painéis `workspace-*`) e `ContractModelsPanel`.
+
+**Produção = quadro kanban** (`producao-kanban.tsx`): colunas Boas-vindas · 3 dias úteis · Estratégia · Produção · Entregue. O cliente fica na coluna da primeira etapa com item pendente (não há arrastar: marcar os itens move o cartão). O cartão mostra o próximo item, o progresso, `D<n>` (dias úteis desde `validado_em`) e "Prazo da etapa passou" quando passa do prazo (1/3/3/5 dias úteis). As abas 6–9 (`workspace-stage-tab.tsx`) são o checklist da etapa (itens de `stages-data.ts`); ao abrir o cliente a tela vai para a etapa atual. Etapas, prazos e progresso: `producao.ts`. O checklist é salvo no banco (`checklist_producao`, `src/lib/producao-service.ts`), em memória para leitura imediata e recarregado a cada 15s; o que estava nas chaves antigas `wrmax_stage_*` do navegador é levado ao banco na primeira carga. No modo demo continua no `localStorage`.
 - Criar cliente + link: `criarClienteComLink` (`src/lib/project-service.ts`).
 - Prorrogar / bloquear / desbloquear / excluir link, marcar PIX pago: `src/lib/supabase.ts`.
-- Aba 5. Contrato (`workspace-contract-panel.tsx`) tem dois modos: **Gerar automaticamente** (abaixo) e **Editar um modelo** (baixa o padrão ou um modelo do catálogo já preenchido com os dados do cliente → edita fora → **anexa** PDF/DOCX em `contratos-docx/<cliente_id>/` → RPC `anexar_contrato_manual`). Contrato manual fica oculto para o cliente até o gestor clicar em **Liberar para o cliente** (RPC `liberar_contrato_cliente`). Só gestor anexa/libera.
+- Aba 5. Contrato (`workspace-contract-panel.tsx`) tem dois modos: **Gerar automaticamente** (abaixo) e **Editar um modelo** (baixa o padrão ou um modelo do catálogo já preenchido com os dados do cliente → edita fora → **anexa** PDF/DOCX em `contratos-docx/<cliente_id>/` → RPC `anexar_contrato_manual`). Contrato manual fica oculto para o cliente até o gestor clicar em **Liberar para o cliente** (RPC `liberar_contrato_cliente`). Só gestor anexa/libera. Valor mensal e vencimento ficam num bloco único, "Condições deste contrato", acima dos dois modos (obrigatórios para gerar, baixar o modelo e anexar). Sem eles o gerador deixa as tags no texto em vez de inventar valores. DOCX manual com tags é preenchido quando o cliente baixa.
 - Emitir contrato: o gestor define `valor_mensal` e `dia_vencimento`, escolhe um modelo DOCX; o DOCX é montado **no navegador** com `jszip` trocando tags `{{RAZAO_SOCIAL}}`, `{{CNPJ}}`, `{{VALOR_MENSAL}}`… (`src/lib/contrato-generator.ts`, `src/lib/contract-service.ts`), depois RPC `emitir_e_enviar_contrato`.
-- Playbook interno de onboarding (13 etapas, checklist): `stages-data.ts`. O checklist é salvo só em `localStorage`.
+- Playbook interno de onboarding (13 etapas, checklist): `stages-data.ts`. O checklist das etapas da Produção vai para o banco (`checklist_producao`); o checklist geral legado (`wrmax_checklist_*`, `workspace-checklist.tsx`, sem uso) fica só no `localStorage`.
 
 Componentes **sem uso no app** (só referenciados por testes) — tratar como legado antes de mexer: `client-management-panel`, `client-workspace-view`, `contract-emission-panel`, `navigation`, `project-entries`, `stage-content`. Provavelmente também `slot-contrato` e `slot-gerar-contrato` (exportados no `index.ts`, mas a tela usa `slot-contrato-cliente`).
 
@@ -82,7 +84,7 @@ Sem as variáveis `VITE_*`, o `npm run dev` entra em **modo demo** (`isModoDemo`
 
 ## Banco (supabase/migrations)
 
-Tabelas: `clientes_onboarding`, `links_temporarios` (token hex de 48 chars, `expira_em` = +5h), `dados_cadastrais_cliente`, `modelos_contrato`, `contratos`, `gestores` (quem pode usar o painel).
+Tabelas: `clientes_onboarding`, `links_temporarios` (token hex de 48 chars, `expira_em` = +5h), `dados_cadastrais_cliente`, `modelos_contrato`, `contratos`, `gestores` (quem pode usar o painel), `checklist_producao` (uma linha por item entregue na Produção; `etapa` = índice em `stages-data.ts`; só gestor, via RLS).
 
 Modelo de acesso (desde `20261007_seguranca_rls_storage.sql`):
 - **anon** (cliente do link) não acessa tabela nenhuma; só executa RPCs que recebem e validam o token: `validar_link_token`, `submeter_cadastro_cliente`, `registrar_comprovante_pix`, `registrar_contrato_assinado`, `registrar_abertura_onboarding`, `confirmar_onboarding_form`.
@@ -113,8 +115,8 @@ Os três usam o mesmo Supabase. Último deploy de todos: 28/09/2026. Confirmar c
 ## Estado atual (08/10/2026)
 
 - Build: passa.
-- Testes: 87/87 passam. Migrations testadas em PGlite (scripts fora do repo).
-- **Pendente no Supabase de teste e de produção:** aplicar `20261009_fluxo_comercial_producao.sql` e depois `20261010_validacao_contrato.sql` (sem ela o modal do onboarding não registra a abertura, o CPF sem CNPJ é recusado e o anexo manual de contrato falha).
+- Testes: 98/98 passam. Migrations testadas em PGlite (scripts fora do repo).
+- **Pendente no Supabase de teste e de produção:** aplicar `20261009_fluxo_comercial_producao.sql`, depois `20261010_validacao_contrato.sql` (sem elas o modal do onboarding não registra a abertura, o CPF sem CNPJ é recusado e o anexo manual de contrato falha) e `20261011_checklist_producao.sql` (sem ela o quadro da Produção mostra "migration pendente").
 - Assinatura pelo gov.br (modal): adiada pela equipe.
 - TypeScript: ~60 erros, quase todos por causa do `tsconfig` estrito (`exactOptionalPropertyTypes`, `noPropertyAccessFromIndexSignature`). O build ignora. Bug real entre eles: `client-workspace-view.tsx` chama `LinkDeleteModal` sem a prop obrigatória `open`. `src/types/database.types.ts` agora segue o formato do supabase-js (antes tudo virava `never`).
 - Histórico do Git: o repo tem um único commit ("up do projeto"); o histórico anterior não veio junto.
@@ -129,7 +131,7 @@ Corrigido em `supabase/migrations/20261007_seguranca_rls_storage.sql` + front (a
 - Os projetos Vercel legados do dashboard separado usam a assinatura antiga de `emitir_e_enviar_contrato` e URLs públicas: param de funcionar para essas ações.
 
 ### 2. Estado guardado só no navegador
-Em produção os dados de clientes, links, cadastro, contrato e comprovante vêm só do banco; os fallbacks em `localStorage` agora valem apenas no modo demo. Continuam só no navegador: checklist/etapas do playbook (`wrmax_checklist_*`, `wrmax_stage_*`) e `wrmax_selected_cliente_id`.
+Em produção os dados de clientes, links, cadastro, contrato e comprovante vêm só do banco; os fallbacks em `localStorage` agora valem apenas no modo demo. O checklist da Produção foi para o banco (`20261011_checklist_producao.sql`). Continuam só no navegador: o checklist geral legado (`wrmax_checklist_*`) e `wrmax_selected_cliente_id`.
 
 ### 3. Dados mock em produção — corrigido
 Mocks (`MOCK_CLIENTES`, `tok_padrao`, `mock-*`) só existem no modo demo (`isModoDemo`).
@@ -143,7 +145,7 @@ O link é montado com `window.location.origin` (`client-row.tsx`, `workspace-lin
 ## Ordem sugerida de trabalho
 
 1. Aplicar a migration de segurança em produção + pendências manuais do item 1; testar o fluxo inteiro do cliente e do gestor.
-2. Levar checklist/etapas do playbook para o banco.
+2. ~~Levar checklist/etapas do playbook para o banco.~~ Feito para a Produção (falta aplicar a migration 20261011).
 3. `VITE_PUBLIC_URL` para os links.
 4. Consolidar deploy num único projeto Vercel; aposentar o repo/projetos do dashboard separado.
 5. Limpeza (código morto, docs) e zerar erros de TypeScript aos poucos.
