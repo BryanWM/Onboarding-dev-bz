@@ -14,6 +14,9 @@ describe("SlotDadosCadastrais Component", () => {
     render(<SlotDadosCadastrais token="token-teste" cadastroPreenchidoInicial={false} />);
     expect(screen.getByRole("heading", { name: "Dados Cadastrais" })).toBeInTheDocument();
     expect(screen.getByLabelText("CPF *")).toBeInTheDocument();
+    // empresa fica escondida ate o cliente pedir
+    expect(screen.queryByLabelText("CNPJ (opcional)")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Contratar por uma empresa/ }));
     expect(screen.getByLabelText("CNPJ (opcional)")).toBeInTheDocument();
     expect(screen.getByLabelText("Razão social (opcional)")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Empresa \(PJ\)/ })).toBeNull();
@@ -60,6 +63,7 @@ describe("SlotDadosCadastrais Component", () => {
     preencher(/Nome completo/, "Maria Silva");
     preencher(/^CPF/, "52998224725");
     preencher(/E-mail/, "maria@teste.com");
+    fireEvent.click(screen.getByRole("button", { name: /Contratar por uma empresa/ }));
     preencher(/^CNPJ/, "12345678000100");
 
     fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));

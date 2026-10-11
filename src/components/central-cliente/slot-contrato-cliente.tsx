@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from "react";
-import { ScrollText, Download, Upload, CheckCircle2, Clock, FileCheck, Loader2, Lock, AlertCircle } from "lucide-react";
+import { ScrollText, Download, Upload, CheckCircle2, Loader2, Lock, AlertCircle } from "lucide-react";
 import { SlotHeader } from "./slot-header";
 import { formatCurrency } from "@/lib/utils";
 import { enviarContratoAssinado } from "@/lib/supabase";
@@ -125,39 +125,39 @@ export function SlotContratoCliente({
     }
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  // Selecionar o arquivo assinado ja envia (um clique, como no comprovante PIX)
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     setErroTamanho(null);
-    if (e.target.files && e.target.files[0]) {
-      const f = e.target.files[0];
-      if (f.size > MAX_FILE_SIZE_CONTRATO) {
-        setErroTamanho("O arquivo excede o limite máximo permitido de 25MB. Por favor, envie um arquivo menor.");
-        setFile(null);
-        return;
-      }
-      setFile(f);
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.size > MAX_FILE_SIZE_CONTRATO) {
+      setErroTamanho("O arquivo excede o limite de 25MB. Envie um arquivo menor.");
+      return;
     }
-  };
-
-  const handleEnviarAssinado = async () => {
-    if (!file) return;
+    setFile(f);
     setUploading(true);
-    setErroTamanho(null);
     try {
       if (onUploadAssinado) {
-        await onUploadAssinado(file);
+        await onUploadAssinado(f);
       } else {
-        await enviarContratoAssinado(token || "", file, { clienteId, contratoId: contrato?.id });
+        await enviarContratoAssinado(token || "", f, { clienteId, contratoId: contrato?.id });
       }
       setAssinadoEnviado(true);
-      setNomeArquivoAssinado(file.name);
-      setFile(null);
+      setNomeArquivoAssinado(f.name);
     } catch (err) {
       console.error(err);
       setErroTamanho(err instanceof Error ? err.message : "Não foi possível enviar o contrato assinado.");
     } finally {
       setUploading(false);
+      setFile(null);
     }
   };
+
+  const condicoes = [
+    contrato?.valor_mensal != null ? { rotulo: "Investimento mensal", valor: formatCurrency(contrato.valor_mensal) } : null,
+    contrato?.dia_vencimento != null ? { rotulo: "Vencimento", valor: `Todo dia ${contrato.dia_vencimento}` } : null,
+  ].filter(Boolean) as { rotulo: string; valor: string }[];
 
   return (
     <section className="metal-panel p-5 sm:p-7">
@@ -165,140 +165,85 @@ export function SlotContratoCliente({
         index="05"
         icon={<ScrollText className="size-5" />}
         title="Contrato de Prestação de Serviços"
-        subtitle="Acesse a minuta oficial emitida pela WRMax e envie sua via assinada."
+        subtitle="Baixe o contrato, assine e envie a via assinada."
       />
 
       <div className="mt-6">
         {contratoLiberado && contrato ? (
-          <div className="rounded-xl border border-border/80 bg-secondary/20 p-5 sm:p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-mono uppercase tracking-wider mb-2">
-                  <FileCheck className="size-3.5" />
-                  Contrato Liberado para Assinatura
+          <div className="space-y-6">
+            {condicoes.length > 0 && (
+              <dl className="flex flex-wrap gap-x-8 gap-y-3">
+                {condicoes.map((c) => (
+                  <div key={c.rotulo}>
+                    <dt className="rotulo">{c.rotulo}</dt>
+                    <dd className="mt-0.5 text-base font-semibold text-foreground tabular-nums">{c.valor}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            <ol className="space-y-4">
+              <li className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                <span className="text-sm text-foreground sm:w-44 shrink-0">
+                  <span className="font-mono text-xs text-muted-foreground mr-2">1</span>Baixar o contrato
                 </span>
-                <h3 className="font-bold text-base text-foreground">
-                  Condições Comerciais Validadas
-                </h3>
-              </div>
+                <button
+                  type="button"
+                  onClick={handleBaixarContratoParametrizado}
+                  disabled={gerandoDocx || (contratoManual && !modeloDocx)}
+                  className={`glass-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60`}
+                >
+                  {gerandoDocx ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                  <span>{gerandoDocx ? "Preparando..." : "Baixar contrato"}</span>
+                </button>
+              </li>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm font-mono">
-                {contrato.valor_mensal != null && (
-                  <div className="bg-secondary/40 px-3.5 py-2 rounded-lg border border-border">
-                    <span className="text-muted-foreground block text-[10px] uppercase">Investimento Mensal</span>
-                    <span className="font-sans tabular-nums font-semibold text-base text-foreground">{formatCurrency(contrato.valor_mensal)}</span>
-                  </div>
-                )}
-                {contrato.dia_vencimento != null && (
-                  <div className="bg-secondary/40 px-3.5 py-2 rounded-lg border border-border">
-                    <span className="text-muted-foreground block text-[10px] uppercase">Vencimento</span>
-                    <span className="font-sans tabular-nums font-semibold text-base text-foreground">Todo dia {contrato.dia_vencimento}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Acao 1: Baixar Minuta Contratual (so aparece quando o admin define e envia) */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-secondary/30 p-5 rounded-xl border border-border/60">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">
-                  1. Baixar Minuta Contratual Oficial
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {contratoManual
-                    ? "Documento preparado pelo gestor com as condições acordadas com você."
-                    : "Documento em Word (.docx) parametrizado com seus dados cadastrais e as cláusulas acordadas."}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleBaixarContratoParametrizado}
-                disabled={gerandoDocx || (contratoManual && !modeloDocx)}
-                className="metal-button inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-primary-foreground cursor-pointer shadow-md shrink-0 w-full sm:w-auto disabled:opacity-60"
-              >
-                {gerandoDocx ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                <span>{gerandoDocx ? "Compilando Contrato..." : contratoManual ? "Baixar Contrato Oficial" : "Baixar Contrato Oficial (.docx)"}</span>
-              </button>
-            </div>
-
-            {/* Acao 2: Enviar Contrato Assinado */}
-            <div className="bg-secondary/30 p-5 rounded-xl border border-border/60 space-y-4">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">
-                  2. Enviar Contrato Assinado
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Assine digitalmente (Gov.br, DocuSign, etc.) ou anexe o documento escaneado/assinado.
-                </p>
-              </div>
-
-              {erroTamanho && (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive text-xs flex items-center gap-2">
-                  <AlertCircle className="size-4 shrink-0" />
-                  <span>{erroTamanho}</span>
-                </div>
-              )}
-
-              {assinadoEnviado ? (
-                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-sm flex items-center gap-3">
-                  <CheckCircle2 className="size-5 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">Via assinada enviada com sucesso!</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {nomeArquivoAssinado || "Documento assinado recebido pelo gestor da WRMax."}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <label className="flex-1 w-full flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm text-muted-foreground cursor-pointer hover:border-primary/50 transition-colors">
-                    <Upload className="size-4 shrink-0 text-primary" />
-                    <span className="truncate">{file ? file.name : "Selecionar arquivo assinado (PDF ou DOCX - máx 25MB)..."}</span>
+              <li className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                <span className="text-sm text-foreground sm:w-44 shrink-0">
+                  <span className="font-mono text-xs text-muted-foreground mr-2">2</span>Enviar assinado
+                </span>
+                {assinadoEnviado ? (
+                  <span role="status" className="flex items-center gap-2 text-sm text-emerald-300 min-w-0">
+                    <CheckCircle2 className="size-5 shrink-0" />
+                    <span className="font-semibold">Via assinada enviada!</span>
+                    {nomeArquivoAssinado && <span className="text-xs text-muted-foreground truncate">{nomeArquivoAssinado}</span>}
+                  </span>
+                ) : (
+                  <label
+                    className={`metal-button h-11 px-5 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer ${
+                      uploading ? "pointer-events-none opacity-60" : ""
+                    }`}
+                  >
+                    {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    <span>{uploading ? `Enviando ${file?.name || "contrato"}...` : "Enviar contrato assinado"}</span>
                     <input
                       type="file"
                       accept=".pdf,.docx,application/pdf"
                       onChange={handleFileChange}
-                      className="hidden"
+                      disabled={uploading}
+                      className="sr-only"
+                      aria-label="Enviar contrato assinado (PDF ou DOCX, até 25MB)"
                     />
                   </label>
+                )}
+              </li>
+            </ol>
 
-                  <button
-                    type="button"
-                    onClick={handleEnviarAssinado}
-                    disabled={!file || uploading}
-                    className="metal-button w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold text-primary-foreground cursor-pointer disabled:opacity-50 shrink-0 flex items-center justify-center gap-2 shadow-md"
-                  >
-                    {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                    <span>{uploading ? "Enviando via..." : "Enviar Via Assinada"}</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            {erroTamanho && (
+              <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="size-4 shrink-0" />
+                <span>{erroTamanho}</span>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">Pode assinar pelo gov.br ou imprimir, assinar e escanear.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border/80 bg-secondary/10 p-6 sm:p-8 text-center space-y-4">
-            <div className="size-12 rounded-full bg-secondary/40 text-muted-foreground flex items-center justify-center mx-auto">
-              <Lock className="size-5" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="font-display text-base font-semibold text-foreground">
-                Contrato em elaboração pelo gestor
-              </h4>
-              <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                Após o preenchimento dos seus dados cadastrais, o gestor da sua conta emitirá o contrato oficial de prestação de serviços com o valor e vencimento acordados.
-              </p>
-            </div>
-            <div className="pt-2 flex justify-center">
-              <button
-                type="button"
-                disabled
-                className="w-full sm:w-auto px-5 py-3 rounded-xl border border-border/80 bg-secondary/30 text-muted-foreground/60 text-sm font-semibold flex items-center justify-center gap-2.5 cursor-not-allowed select-none"
-                title="Download bloqueado: aguardando liberação do contrato pelo gestor"
-              >
-                <Lock className="size-4" />
-                <span>Download Bloqueado (Aguardando Liberação pelo Gestor)</span>
-              </button>
+          <div className="flex items-start gap-3 text-sm">
+            <Lock className="size-4 shrink-0 mt-0.5 text-muted-foreground" />
+            <div>
+              <p className="text-foreground">Contrato em elaboração pelo gestor</p>
+              <p className="text-muted-foreground mt-0.5">Depois dos seus dados cadastrais, o gestor libera o contrato aqui.</p>
             </div>
           </div>
         )}

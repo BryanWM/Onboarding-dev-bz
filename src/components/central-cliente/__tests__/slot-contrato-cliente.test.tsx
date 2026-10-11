@@ -40,11 +40,10 @@ describe("SlotContratoCliente Component", () => {
       />
     );
 
-    expect(screen.getByText("Contrato Liberado para Assinatura")).toBeInTheDocument();
     expect(screen.getByText("R$ 2.500,00")).toBeInTheDocument();
     expect(screen.getByText("Todo dia 10")).toBeInTheDocument();
 
-    const btn = screen.getByRole("button", { name: /Baixar Contrato Oficial/i });
+    const btn = screen.getByRole("button", { name: /Baixar contrato/i });
     expect(btn).toBeInTheDocument();
 
     fireEvent.click(btn);

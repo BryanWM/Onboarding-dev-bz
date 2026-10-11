@@ -36,7 +36,6 @@ describe("Route /c/$token (Jornada do Cliente com Token Efêmero)", () => {
     await waitFor(() => {
       expect(screen.getByRole("img", { name: "WRMax Marketing" })).toBeInTheDocument();
       expect(screen.getByText(/Central do cliente/i)).toBeInTheDocument();
-      expect(screen.getByText(/Jornada de Implantação/i)).toBeInTheDocument();
     });
 
     // Progresso: nada concluido ainda, etapa atual = Proposta
@@ -44,10 +43,13 @@ describe("Route /c/$token (Jornada do Cliente com Token Efêmero)", () => {
     expect(screen.getByRole("progressbar", { name: /etapas concluídas/i })).toHaveAttribute("aria-valuenow", "0");
     expect(screen.getByText(/Próximo · Proposta/)).toBeInTheDocument();
 
-    // 4 Slots
+    // Acordeao: so a etapa atual aberta; as outras aparecem como linha com o titulo
     expect(screen.getByText("Apresentação do Projeto")).toBeInTheDocument();
     expect(screen.getByText("Pagamento via PIX")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Dados Cadastrais" })).toBeInTheDocument();
+    expect(screen.getByText("Dados Cadastrais")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Apresentação do Projeto" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Pagamento via PIX" })).toBeNull();
+    expect(screen.getByText("Liberado pelo gestor")).toBeInTheDocument();
     expect(screen.getByText("Contrato de Prestação de Serviços")).toBeInTheDocument();
   });
 });

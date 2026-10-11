@@ -12,7 +12,7 @@ describe("SlotOnboarding component", () => {
 
     expect(screen.getByText("Onboarding do cliente")).toBeInTheDocument();
     expect(screen.getByText("Reserve um tempo")).toBeInTheDocument();
-    expect(screen.getByText("Pode parar no meio.")).toBeInTheDocument();
+    expect(screen.getByText(/conta Google/)).toBeInTheDocument();
     expect(screen.queryByRole("timer")).toBeNull();
     expect(screen.queryByText(/3:05/)).toBeNull();
   });

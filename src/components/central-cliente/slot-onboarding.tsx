@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, CheckCircle2, Clock, FolderOpen, Loader2, AlertCircle, Lock, Save, Hourglass } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Clock, FolderOpen, Loader2, AlertCircle, Lock } from "lucide-react";
 import { SlotHeader } from "./slot-header";
 import { OnboardingFormModal } from "./onboarding-form-modal";
 import { confirmarOnboardingForm, registrarAberturaOnboarding } from "@/lib/supabase";
@@ -78,36 +78,24 @@ export function SlotOnboarding({
   const liberado = aberto && restantes <= 0;
 
   return (
-    <section className="metal-panel p-6">
+    <section className="metal-panel p-5 sm:p-7">
       <SlotHeader
         index="03"
         icon={<FolderOpen className="size-4" />}
         title="Onboarding do cliente"
-        subtitle="Preencha o formulário com os dados da sua empresa para iniciarmos a operação."
+        subtitle="Conte sobre a sua empresa para iniciarmos a operação."
       />
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="glass-soft rounded-xl p-4 flex items-start gap-3">
-          <Hourglass className="size-4 shrink-0 mt-0.5 text-primary" />
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            <strong className="text-foreground font-semibold">Reserve um tempo</strong> para responder com calma: leva de
-            10 a 15 minutos. Quanto mais detalhadas as respostas, mais rápido e certeiro será o início da sua operação.
-          </p>
-        </div>
-        <div className="glass-soft rounded-xl p-4 flex items-start gap-3">
-          <Save className="size-4 shrink-0 mt-0.5 text-primary" />
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            <strong className="text-foreground font-semibold">Pode parar no meio.</strong> Entrando com sua conta Google,
-            suas respostas ficam salvas como rascunho para continuar depois.
-          </p>
-        </div>
-      </div>
+      <p className="mt-5 text-sm text-muted-foreground leading-relaxed">
+        <strong className="text-foreground font-semibold">Reserve um tempo</strong>: leva de 10 a 15 minutos. Pode parar
+        no meio: entrando com sua conta Google, as respostas ficam salvas como rascunho.
+      </p>
 
-      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+      <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
         <button
           type="button"
           onClick={abrirModal}
-          className="glass-button inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 h-12 text-sm font-semibold cursor-pointer"
+          className={`${aberto ? "glass-button" : "metal-button"} h-12 px-6 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer`}
         >
           <FolderOpen className="size-4" />
           Preencher formulário
@@ -117,19 +105,19 @@ export function SlotOnboarding({
           target="_blank"
           rel="noreferrer"
           onClick={registrarAbertura}
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg px-4 h-12 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center justify-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
         >
           Abrir no Google <ArrowUpRight className="size-4" />
         </a>
       </div>
 
       {token && (
-        <div className="mt-5">
+        <div className="mt-6 pt-5 border-t border-[var(--linha)]">
           {confirmado ? (
-            <div role="status" className="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-300 text-sm flex items-center gap-3.5">
-              <CheckCircle2 className="size-7 shrink-0" />
+            <div role="status" className="flex items-center gap-3 text-emerald-300 text-sm">
+              <CheckCircle2 className="size-5 shrink-0" />
               <div>
-                <p className="font-semibold text-base">Preenchimento do formulário confirmado!</p>
+                <p className="font-semibold">Preenchimento do formulário confirmado!</p>
                 <p className="text-xs text-muted-foreground">
                   Confirmado em {new Date(confirmado).toLocaleString("pt-BR")}. O gestor já foi avisado.
                 </p>
@@ -147,7 +135,7 @@ export function SlotOnboarding({
                 type="button"
                 onClick={handleConfirmar}
                 disabled={!liberado || enviando}
-                className="metal-button w-full h-12 rounded-lg text-sm sm:text-base font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className={`${liberado ? "metal-button" : "glass-button"} w-full sm:w-auto h-12 px-6 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {enviando ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -168,9 +156,6 @@ export function SlotOnboarding({
                         : "Confirmo que preenchi o formulário de onboarding"}
                 </span>
               </button>
-              <p className="text-[11px] text-muted-foreground text-center">
-                Depois de enviar o formulário do Google, volte aqui e confirme o preenchimento.
-              </p>
             </div>
           )}
         </div>
