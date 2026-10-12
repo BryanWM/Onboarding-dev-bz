@@ -29,10 +29,10 @@ Portal de entrada de novos clientes da WRMax Marketing. O gestor cadastra o clie
 
 São **5 slots** (o README fala em 4 — está desatualizado):
 
-1. `slot-apresentacao` — PDF da proposta enviado pelo gestor.
+1. `slot-apresentacao` — PDF da proposta enviado pelo gestor. Só conta como concluída quando o cliente clica em "Visualizar" ou "Baixar" (fica em `localStorage` `wrmax_apresentacao_vista_<token>`; se outra etapa já foi feita, conta como vista). Por isso um link novo abre na Apresentação, não no PIX.
 2. `slot-pix` — chave/QR estáticos (`financeiro@wrmaxmarketing.com.br`) + anexo de comprovante.
 3. `slot-onboarding` — abre o Google Forms (`link_onboarding_form`) num modal (`onboarding-form-modal.tsx`, iframe `?embedded=true`) ou em nova aba. A primeira abertura é gravada (RPC `registrar_abertura_onboarding`) e o botão "Confirmo que preenchi" libera 5 min depois dela (regra no banco: `confirmar_onboarding_form`). **Sem contador na tela**: só a orientação "Reserve um tempo". O "checkpoint" é o rascunho automático do Google Forms (cliente logado na conta Google). Link `forms.gle` pode não abrir no iframe — usar o link completo.
-4. `slot-dados-cadastrais` — formulário único (sem abas PF/PJ): nome e **CPF obrigatórios**, razão social e **CNPJ opcionais**, e-mail, telefone, endereço → RPC `submeter_cadastro_cliente` (valida CPF 11 dígitos / CNPJ 14 no banco; dígitos verificadores no front, `src/lib/documentos.ts`). Sem empresa, `razao_social` = nome.
+4. `slot-dados-cadastrais` — escolha Pessoa física / Pessoa jurídica: nome, **CPF**, e-mail e **CEP** obrigatórios nas duas; PJ soma nome da empresa e CNPJ (obrigatórios nela); telefone e endereço opcionais → RPC `submeter_cadastro_cliente` (valida CPF 11 dígitos, CNPJ 14 e CEP 8 no banco e grava o CEP como `00000-000`; dígitos verificadores e máscaras no front, `src/lib/documentos.ts`). Sem empresa, `razao_social` = nome. O CEP preenche a tag `{{CEP}}` do contrato (sem CEP a tag fica no texto).
 5. `slot-contrato-cliente` — bloqueado até o gestor liberar; contrato automático = DOCX montado com os dados; contrato manual (`origem = 'manual'`) = baixa o arquivo anexado. Cliente envia a via assinada.
 
 Layout em **acordeão** (`calcularEtapas` em `cliente-token-screen.tsx`): só uma etapa aberta (a atual por padrão; ao concluir, a próxima abre sozinha); concluídas, futuras e o contrato bloqueado viram uma linha com título e tempo estimado. A tela faz polling a cada 3s (`validarLinkToken`) e escuta eventos `window` `wrmax:*`. Modais renderizam no `<body>` via `<Portal>` (`src/components/portal.tsx`) e travam a rolagem com `useTravarRolagem`.
@@ -95,7 +95,7 @@ Modelo de acesso (desde `20261007_seguranca_rls_storage.sql`):
 
 Buckets — todos **privados**: `apresentacoes-pdf`, `contratos-docx`, `modelos-contrato`, `contratos-assinados`, `comprovantes-pix`. O banco guarda `bucket/caminho` (não URL). Gestor abre por URL assinada (`useUrlArquivoGestor`, `src/lib/storage-refs.ts`). O cliente usa as server functions de `src/lib/arquivos-cliente.ts` (service_role, validam o token): `obterArquivosCliente` (URLs assinadas de 1h) e `prepararUploadCliente` (URL de upload assinada em `<cliente_id>/...`; depois a RPC `registrar_*` confere caminho e objeto).
 
-`validar_link_token` foi redefinida em várias migrations — a versão válida é a de `20261010_validacao_contrato.sql` (devolve `segundos_para_confirmar_onboarding = null` enquanto o cliente não abrir o formulário). Mesma coisa para `submeter_cadastro_cliente` e `confirmar_onboarding_form`.
+`validar_link_token` foi redefinida em várias migrations — a versão válida é a de `20261010_validacao_contrato.sql` (devolve `segundos_para_confirmar_onboarding = null` enquanto o cliente não abrir o formulário). Mesma coisa para `confirmar_onboarding_form`. A versão válida de `submeter_cadastro_cliente` é a de `20261012_cep_cadastro.sql`.
 
 Para dar acesso a um novo gestor (SQL editor do Supabase):
 ```sql
@@ -115,8 +115,8 @@ Os três usam o mesmo Supabase. Último deploy de todos: 28/09/2026. Confirmar c
 ## Estado atual (08/10/2026)
 
 - Build: passa.
-- Testes: 98/98 passam. Migrations testadas em PGlite (scripts fora do repo).
-- **Pendente no Supabase de teste e de produção:** aplicar `20261009_fluxo_comercial_producao.sql`, depois `20261010_validacao_contrato.sql` (sem elas o modal do onboarding não registra a abertura, o CPF sem CNPJ é recusado e o anexo manual de contrato falha) e `20261011_checklist_producao.sql` (sem ela o quadro da Produção mostra "migration pendente").
+- Testes: 101/101 passam. Migrations testadas em PGlite (scripts fora do repo).
+- **Pendente no Supabase de teste e de produção:** aplicar `20261009_fluxo_comercial_producao.sql`, depois `20261010_validacao_contrato.sql` (sem elas o modal do onboarding não registra a abertura, o CPF sem CNPJ é recusado e o anexo manual de contrato falha) e `20261011_checklist_producao.sql` (sem ela o quadro da Produção mostra "migration pendente"). Novo: `20261012_cep_cadastro.sql` (sem ela o CEP enviado pelo cliente não é gravado).
 - Assinatura pelo gov.br (modal): adiada pela equipe.
 - TypeScript: ~60 erros, quase todos por causa do `tsconfig` estrito (`exactOptionalPropertyTypes`, `noPropertyAccessFromIndexSignature`). O build ignora. Bug real entre eles: `client-workspace-view.tsx` chama `LinkDeleteModal` sem a prop obrigatória `open`. `src/types/database.types.ts` agora segue o formato do supabase-js (antes tudo virava `never`).
 - Histórico do Git: o repo tem um único commit ("up do projeto"); o histórico anterior não veio junto.
