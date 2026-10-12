@@ -5,11 +5,15 @@ import { SlotHeader } from "./slot-header";
 interface SlotApresentacaoProps {
   apresentacaoUrl?: string | null;
   apresentacaoNome?: string | null;
+  // Cliente abriu ou baixou o PDF: conclui a etapa (a previa embutida nao conta,
+  // senao a etapa recolheria enquanto ele le)
+  onVisualizada?: () => void;
 }
 
 export function SlotApresentacao({
   apresentacaoUrl,
   apresentacaoNome = "Apresentacao_Estrategica_WRMax.pdf",
+  onVisualizada,
 }: SlotApresentacaoProps) {
   // Pre-visualizacao embutida fica recolhida: o principal e abrir o PDF
   const [preview, setPreview] = useState(false);
@@ -36,6 +40,7 @@ export function SlotApresentacao({
                 href={apresentacaoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => onVisualizada?.()}
                 className="metal-button h-12 px-6 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer"
               >
                 Visualizar Apresentação
@@ -43,6 +48,7 @@ export function SlotApresentacao({
               <a
                 href={apresentacaoUrl}
                 download={apresentacaoNome || "Apresentacao_WRMax.pdf"}
+                onClick={() => onVisualizada?.()}
                 className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors text-center"
               >
                 Baixar PDF

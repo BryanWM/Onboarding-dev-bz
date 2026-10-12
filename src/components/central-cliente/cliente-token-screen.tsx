@@ -40,14 +40,28 @@ const ETAPAS_BASE = [
   { titulo: "Contrato de Prestação de Serviços", curto: "Contrato", tempo: "~5 min" },
 ];
 
-function calcularEtapas(dados: ValidacaoTokenResultado | null) {
-  const estado = [
-    { ok: Boolean(dados?.cliente?.apresentacao_pdf_url), bloqueada: false },
+// A apresentacao so conta como concluida depois que o cliente abre ou baixa o PDF
+// (fica no navegador). Se ele ja avancou em outra etapa, conta como vista.
+const chaveApresentacaoVista = (token?: string) => `wrmax_apresentacao_vista_${token || ""}`;
+
+function lerApresentacaoVista(token?: string) {
+  try {
+    return typeof window !== "undefined" && localStorage.getItem(chaveApresentacaoVista(token)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function calcularEtapas(dados: ValidacaoTokenResultado | null, apresentacaoVista: boolean) {
+  const seguintes = [
     { ok: Boolean(dados?.cliente?.pix_pago || dados?.cliente?.comprovante_pix_nome), bloqueada: false },
     { ok: Boolean(dados?.cliente?.onboarding_confirmado_em), bloqueada: false },
     { ok: Boolean(dados?.cadastro_preenchido), bloqueada: false },
     { ok: Boolean(dados?.contrato?.docx_assinado_storage_path), bloqueada: !dados?.contrato_liberado },
   ];
+  const apresentacaoOk =
+    Boolean(dados?.cliente?.apresentacao_pdf_url) && (apresentacaoVista || seguintes.some((e) => e.ok));
+  const estado = [{ ok: apresentacaoOk, bloqueada: false }, ...seguintes];
   const etapas = ETAPAS_BASE.map((e, i) => ({ ...e, ...estado[i]! }));
   return { etapas, indiceAtual: etapas.findIndex((e) => !e.ok && !e.bloqueada) };
 }
@@ -233,7 +247,14 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
   // Acordeao: so uma etapa aberta. Segue a etapa atual ate o cliente abrir outra;
   // quando a atual muda (etapa concluida), a nova abre sozinha.
   const [abertaManual, setAbertaManual] = useState<number | null | undefined>(undefined);
-  const indiceAtualCalc = useMemo(() => calcularEtapas(dados).indiceAtual, [dados]);
+  const [apresentacaoVista, setApresentacaoVista] = useState(() => lerApresentacaoVista(token));
+  const marcarApresentacaoVista = () => {
+    setApresentacaoVista(true);
+    try {
+      localStorage.setItem(chaveApresentacaoVista(token), "1");
+    } catch {}
+  };
+  const indiceAtualCalc = useMemo(() => calcularEtapas(dados, apresentacaoVista).indiceAtual, [dados, apresentacaoVista]);
   useEffect(() => setAbertaManual(undefined), [indiceAtualCalc]);
 
   const formatarTempo = (segundos: number) => {
@@ -261,7 +282,7 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
     return <InstitucionalScreen />;
   }
 
-  const { etapas, indiceAtual } = calcularEtapas(dados);
+  const { etapas, indiceAtual } = calcularEtapas(dados, apresentacaoVista);
   const concluidas = etapas.filter((e) => e.ok).length;
   const faltam = 5 - concluidas;
   const aberta = abertaManual === undefined ? indiceAtual : abertaManual;
@@ -269,7 +290,13 @@ export function ClienteTokenScreen({ token: propToken }: ClienteTokenScreenProps
   const conteudoEtapa = (i: number) => {
     switch (i) {
       case 0:
-        return <SlotApresentacao apresentacaoUrl={urls.apresentacao} apresentacaoNome={dados.cliente?.apresentacao_pdf_nome} />;
+        return (
+          <SlotApresentacao
+            apresentacaoUrl={urls.apresentacao}
+            apresentacaoNome={dados.cliente?.apresentacao_pdf_nome}
+            onVisualizada={marcarApresentacaoVista}
+          />
+        );
       case 1:
         return (
           <SlotPix
