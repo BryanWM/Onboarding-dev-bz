@@ -75,8 +75,9 @@ describe("contrato-generator module", () => {
     expect(mapa["{{ANO_ASSINATURA}}"]).toBe("2026");
   });
 
-  it("sem valor/vencimento informados as tags ficam no texto (nao inventa 1.500 / dia 10)", () => {
-    const mapa = compilarVariaveisContrato({ nome: "X", documento: "1", endereco: "E", cep: "C", email: "e@x" });
+  it("sem CEP/valor/vencimento informados as tags ficam no texto (nao inventa CEP, 1.500 / dia 10)", () => {
+    const mapa = compilarVariaveisContrato({ nome: "X", documento: "1", endereco: "E", cep: "", email: "e@x" });
+    expect(mapa["{{CEP}}"]).toBe("{{CEP}}");
     expect(mapa["{{VALOR_MENSAL}}"]).toBe("{{VALOR_MENSAL}}");
     expect(mapa["{{DIA_VENCIMENTO}}"]).toBe("{{DIA_VENCIMENTO}}");
   });

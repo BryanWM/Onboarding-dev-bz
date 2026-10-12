@@ -94,6 +94,7 @@ export function WorkspaceCadastralPanel({
         { rotulo: "E-mail financeiro", valor: dados.email_financeiro },
         { rotulo: "Telefone / WhatsApp", valor: dados.telefone_financeiro, mono: true },
         { rotulo: "Endereço registrado", valor: dados.logradouro },
+        { rotulo: "CEP", valor: dados.cep, mono: true },
       ]
     : [];
 

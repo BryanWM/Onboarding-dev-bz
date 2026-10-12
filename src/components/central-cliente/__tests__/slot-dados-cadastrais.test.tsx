@@ -13,6 +13,7 @@ function preencherPessoa() {
   preencher(/^Nome (completo|do responsável)/, "Maria Silva");
   preencher(/^CPF/, "52998224725");
   preencher(/^E-mail/, "maria@teste.com");
+  preencher(/^CEP/, "64000020");
 }
 
 describe("SlotDadosCadastrais", () => {
@@ -34,9 +35,25 @@ describe("SlotDadosCadastrais", () => {
     await waitFor(() => expect(screen.getByText("Dados cadastrais enviados com sucesso!")).toBeInTheDocument());
     expect(spy).toHaveBeenCalledWith(
       "tok",
-      expect.objectContaining({ representante_cpf: "529.982.247-25", razao_social: "Maria Silva", cnpj: null }),
+      expect.objectContaining({ representante_cpf: "529.982.247-25", razao_social: "Maria Silva", cnpj: null, cep: "64000-020" }),
     );
     expect(screen.getByText("Pessoa física")).toBeInTheDocument();
+    expect(screen.getByText("64000-020")).toBeInTheDocument();
+  });
+
+  it("CEP e obrigatorio e precisa de 8 numeros", async () => {
+    const spy = vi.spyOn(supabaseLib, "submeterCadastroCliente").mockResolvedValue({ sucesso: true } as any);
+    render(<SlotDadosCadastrais token="tok" />);
+    preencherPessoa();
+    preencher(/^CEP/, "");
+    fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("o e-mail e o CEP");
+
+    preencher(/^CEP/, "6400");
+    expect(screen.getByLabelText("CEP *")).toHaveValue("6400");
+    fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("CEP inválido");
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it("recusa CPF invalido", async () => {
@@ -45,6 +62,7 @@ describe("SlotDadosCadastrais", () => {
     preencher(/^Nome completo/, "Maria Silva");
     preencher(/^CPF/, "11111111111");
     preencher(/^E-mail/, "maria@teste.com");
+    preencher(/^CEP/, "64000020");
     fireEvent.click(screen.getByRole("button", { name: /Confirmar Dados Cadastrais/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent("CPF inválido");
     expect(spy).not.toHaveBeenCalled();
@@ -73,6 +91,7 @@ describe("SlotDadosCadastrais", () => {
         cnpj: "11.222.333/0001-81",
         representante_nome: "Maria Silva",
         representante_cpf: "529.982.247-25",
+        cep: "64000-020",
       }),
     );
     // resumo mostra os dados da empresa

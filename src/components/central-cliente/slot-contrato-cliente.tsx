@@ -95,9 +95,9 @@ export function SlotContratoCliente({
       const nomeFinal = (cad?.razao_social || cad?.nome_ou_razao || cad?.representante_nome || clienteNome || "Cliente Parceiro").trim();
       const docFinal = (cad?.cnpj || cad?.cpf_ou_cnpj || cad?.representante_cpf || "A informar nos dados cadastrais").trim();
       const enderecoFinal = (cad?.logradouro || cad?.endereco || "Teresina - PI").trim();
-      const cepFinal = (cad?.cep || "64000-000").trim();
+      const cepFinal = (cad?.cep || "").trim();
       const emailFinal = (cad?.email_financeiro || cad?.email || clienteEmail || "contato@empresa.com").trim();
-      const valorStr = contrato.valor_mensal ? formatCurrency(contrato.valor_mensal).replace("R$", "").trim() : "1.500,00";
+      const valorStr = contrato.valor_mensal ? formatCurrency(contrato.valor_mensal).replace("R$", "").trim() : "";
 
       const { blob, fileName } = await gerarContratoDocx(
         {
@@ -111,7 +111,7 @@ export function SlotContratoCliente({
           estadoCivil: cad?.estado_civil || "solteiro(a)",
           profissao: cad?.profissao || "empresário(a)",
           valorMensal: valorStr,
-          diaVencimento: String(contrato.dia_vencimento || 10),
+          diaVencimento: contrato.dia_vencimento ? String(contrato.dia_vencimento) : "",
         },
         undefined,
         modeloDocx,

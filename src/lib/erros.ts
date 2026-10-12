@@ -7,6 +7,7 @@ const MENSAGENS_ERRO: Record<string, string> = {
   CADASTRO_INCOMPLETO: "Preencha o nome completo, o CPF e o e-mail.",
   CPF_INVALIDO: "CPF inválido. Confira os números e tente de novo.",
   CNPJ_INVALIDO: "CNPJ inválido. Confira os números ou deixe o campo em branco.",
+  CEP_INVALIDO: "CEP inválido. Informe os 8 números.",
   CONTRATO_JA_VALIDADO: "Este contrato já foi validado pelo gestor. Fale com a WRMax se precisar trocar a via.",
   VIA_ASSINADA_AUSENTE: "O cliente ainda não enviou a via assinada.",
   // coluna obrigatoria no banco antigo (ex.: CNPJ sem a migration 20261009)

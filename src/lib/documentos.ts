@@ -1,4 +1,4 @@
-// CPF e CNPJ: mascara enquanto digita e validacao dos digitos verificadores.
+// CPF, CNPJ e CEP: mascara enquanto digita e validacao (digitos verificadores no CPF/CNPJ).
 
 export function somenteDigitos(valor: string) {
   return (valor || "").replace(/\D/g, "");
@@ -19,6 +19,14 @@ export function mascararCnpj(valor: string) {
     .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
     .replace(/\.(\d{3})(\d)/, ".$1/$2")
     .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+export function mascararCep(valor: string) {
+  return somenteDigitos(valor).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
+}
+
+export function cepValido(valor: string) {
+  return somenteDigitos(valor).length === 8;
 }
 
 export function cpfValido(valor: string) {

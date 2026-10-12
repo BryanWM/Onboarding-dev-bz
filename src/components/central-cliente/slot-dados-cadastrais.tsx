@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Building2, CheckCircle2, Loader2, AlertCircle, User } from "lucide-react";
 import { SlotHeader } from "./slot-header";
 import { submeterCadastroCliente } from "@/lib/supabase";
-import { cnpjValido, cpfValido, mascararCnpj, mascararCpf } from "@/lib/documentos";
+import { cepValido, cnpjValido, cpfValido, mascararCep, mascararCnpj, mascararCpf } from "@/lib/documentos";
 
 interface SlotDadosCadastraisProps {
   token: string;
@@ -42,22 +42,28 @@ export function SlotDadosCadastrais({
     email_financeiro: dadosIniciais?.email_financeiro || "",
     telefone_financeiro: dadosIniciais?.telefone_financeiro || "",
     logradouro: dadosIniciais?.logradouro || "",
+    cep: dadosIniciais?.cep || "",
   });
 
+  const MASCARAS: Record<string, (v: string) => string> = { cpf: mascararCpf, cnpj: mascararCnpj, cep: mascararCep };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const valor = name === "cpf" ? mascararCpf(value) : name === "cnpj" ? mascararCnpj(value) : value;
+    const valor = MASCARAS[name]?.(value) ?? value;
     setForm((prev) => ({ ...prev, [name]: valor }));
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!form.nome.trim() || !form.cpf || !form.email_financeiro.trim()) {
-      setErro("Preencha o nome completo, o CPF e o e-mail.");
+    if (!form.nome.trim() || !form.cpf || !form.email_financeiro.trim() || !form.cep) {
+      setErro("Preencha o nome completo, o CPF, o e-mail e o CEP.");
       return;
     }
     if (!cpfValido(form.cpf)) {
       setErro("CPF inválido. Confira os números e tente de novo.");
+      return;
+    }
+    if (!cepValido(form.cep)) {
+      setErro("CEP inválido. Informe os 8 números.");
       return;
     }
     if (tipo === "pj") {
@@ -84,6 +90,7 @@ export function SlotDadosCadastrais({
       email_financeiro: form.email_financeiro.trim(),
       telefone_financeiro: form.telefone_financeiro.trim() || null,
       logradouro: form.logradouro.trim() || null,
+      cep: form.cep,
     };
 
     try {
@@ -115,6 +122,7 @@ export function SlotDadosCadastrais({
     { rotulo: "CPF", valor: form.cpf || dadosIniciais?.representante_cpf },
     { rotulo: "E-mail", valor: form.email_financeiro || dadosIniciais?.email_financeiro },
     { rotulo: "Telefone / WhatsApp", valor: form.telefone_financeiro || dadosIniciais?.telefone_financeiro },
+    { rotulo: "CEP", valor: form.cep || dadosIniciais?.cep },
   ];
 
   return (
@@ -283,20 +291,38 @@ export function SlotDadosCadastrais({
               </div>
             </div>
 
-            <div>
-              <label htmlFor="cad-endereco" className={CLASSE_ROTULO}>
-                Endereço (rua, número, bairro, cidade/UF)
-              </label>
-              <input
-                id="cad-endereco"
-                type="text"
-                name="logradouro"
-                value={form.logradouro}
-                onChange={handleChange}
-                autoComplete="street-address"
-                placeholder="Ex: Av. Frei Serafim, 1200 - Centro, Teresina/PI"
-                className={CLASSE_CAMPO}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-4">
+              <div>
+                <label htmlFor="cad-endereco" className={CLASSE_ROTULO}>
+                  Endereço (rua, número, bairro, cidade/UF)
+                </label>
+                <input
+                  id="cad-endereco"
+                  type="text"
+                  name="logradouro"
+                  value={form.logradouro}
+                  onChange={handleChange}
+                  autoComplete="street-address"
+                  placeholder="Ex: Av. Frei Serafim, 1200 - Centro, Teresina/PI"
+                  className={CLASSE_CAMPO}
+                />
+              </div>
+              <div>
+                <label htmlFor="cad-cep" className={CLASSE_ROTULO}>
+                  CEP *
+                </label>
+                <input
+                  id="cad-cep"
+                  type="text"
+                  inputMode="numeric"
+                  name="cep"
+                  value={form.cep}
+                  onChange={handleChange}
+                  autoComplete="postal-code"
+                  placeholder="00000-000"
+                  className={`${CLASSE_CAMPO} font-mono`}
+                />
+              </div>
             </div>
 
             <button

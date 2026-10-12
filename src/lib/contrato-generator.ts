@@ -137,7 +137,7 @@ export function compilarVariaveisContrato(
   const nome = (dados.nome || "Cliente Parceiro").trim();
   const doc = (dados.documento || "A informar nos dados cadastrais").trim();
   const endereco = (dados.endereco || "Teresina - PI").trim();
-  const cep = (dados.cep || "64000-000").trim();
+  const cep = dados.cep?.trim() || "{{CEP}}";
   const email = (dados.email || "contato@empresa.com").trim();
   const nac = (dados.nacionalidade || "brasileiro(a)").trim();
   const estCivil = (dados.estadoCivil || "solteiro(a)").trim();
