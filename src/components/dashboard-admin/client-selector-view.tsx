@@ -152,18 +152,14 @@ export function ClientSelectorView({
     <div className="flex-1 min-h-0 flex flex-col gap-4">
       {/* Titulo + acoes principais (dourado: etiqueta, 1 palavra e "Novo Projeto") */}
       <section className="shrink-0 flex flex-col md:flex-row md:items-end justify-between gap-4 pt-2 px-1">
-        <div className="min-w-0">
+        {/* Saudacao como titulo; o resto da frase vira subtitulo */}
+        <div className="min-w-0 space-y-1">
           <h1 className="text-xl sm:text-3xl font-extrabold text-foreground tracking-tight leading-tight">
-            {setor === "producao" ? (
-              <>
-                {saudacao}, equipe. Projetos em <span className="metal-text">produção</span>.
-              </>
-            ) : (
-              <>
-                {saudacao}, gestor. Seus clientes em <span className="metal-text">andamento</span>.
-              </>
-            )}
+            {saudacao}, <span className="metal-text">{producao ? "equipe" : "gestor"}</span>.
           </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            {producao ? "Projetos em produção." : "Seus clientes em andamento."}
+          </p>
         </div>
         {setor === "comercial" && (
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
